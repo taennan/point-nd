@@ -5,12 +5,12 @@ use std::{
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct PointAD<T, const N: usize>
+pub struct PointND<T, const N: usize>
     where T: Clone + Copy + Default {
     arr: [T; N],
 }
 
-impl<T, const N: usize>  PointAD<T, N>
+impl<T, const N: usize>  PointND<T, N>
     where T: Clone + Copy + Default {
 
     pub fn from(slice: &[T]) -> Self {
@@ -18,12 +18,12 @@ impl<T, const N: usize>  PointAD<T, N>
             panic!("Cannot construct Point with zero dimensions");
         }
         let arr: [T; N] = slice.try_into().unwrap();
-        PointAD{ arr }
+        PointND { arr }
     }
 
     pub fn of_dimes(d: usize) -> Self {
         let arr = vec![T::default(); d];
-        PointAD::from(&arr)
+        PointND::from(&arr)
     }
 
     pub fn dimes(&self) -> usize {
@@ -48,7 +48,7 @@ impl<T, const N: usize>  PointAD<T, N>
 
 }
 
-impl<T, const N: usize> Add for PointAD<T, N> where T: Add<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
@@ -62,11 +62,11 @@ impl<T, const N: usize> Add for PointAD<T, N> where T: Add<Output = T> + Clone +
             ret_values[i] = values_left[i] + values_right[i];
         }
 
-        PointAD::<T, N>::from(&ret_values)
+        PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Sub for PointAD<T, N> where T: Sub<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -80,11 +80,11 @@ impl<T, const N: usize> Sub for PointAD<T, N> where T: Sub<Output = T> + Clone +
             ret_values[i] = values_left[i] - values_right[i];
         }
 
-        PointAD::<T, N>::from(&ret_values)
+        PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Mul for PointAD<T, N> where T: Mul<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -98,11 +98,11 @@ impl<T, const N: usize> Mul for PointAD<T, N> where T: Mul<Output = T> + Clone +
             ret_values[i] = values_left[i] * values_right[i];
         }
 
-        PointAD::<T, N>::from(&ret_values)
+        PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Div for PointAD<T, N> where T: Div<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
@@ -116,7 +116,7 @@ impl<T, const N: usize> Div for PointAD<T, N> where T: Div<Output = T> + Clone +
             ret_values[i] = values_left[i] / values_right[i];
         }
 
-        PointAD::<T, N>::from(&ret_values)
+        PointND::<T, N>::from(&ret_values)
     }
 
 }
@@ -133,19 +133,19 @@ mod tests {
         fn constructable_with_from_function() {
             let vec = vec![1,2,3,4];
 
-            let _p = PointAD::<_, 4>::from(&vec);
-            let _p = PointAD::<_, 3>::from(&vec[..3]);
+            let _p = PointND::<_, 4>::from(&vec);
+            let _p = PointND::<_, 3>::from(&vec[..3]);
         }
 
         #[test]
         fn constructable_with_of_d_function() {
-            let _p = PointAD::<i32, 2>::of_dimes(2);
+            let _p = PointND::<i32, 2>::of_dimes(2);
         }
 
         #[test]
         #[should_panic]
         fn cant_construct_with_0_dimensions() {
-            let _p = PointAD::<u8, 0>::from(&[]);
+            let _p = PointND::<u8, 0>::from(&[]);
         }
 
     }
@@ -158,7 +158,7 @@ mod tests {
         #[test]
         fn returns_correct_dimensions() {
             let vec = vec![0,1,2,3];
-            let p = PointAD::<_, 4>::from(&vec);
+            let p = PointND::<_, 4>::from(&vec);
 
             assert_eq!(p.dimes(), vec.len());
         }
@@ -173,7 +173,7 @@ mod tests {
         #[test]
         fn returns_value_on_get() {
             let vec = vec![0,1,2,3];
-            let p = PointAD::<_, 4>::from(&vec);
+            let p = PointND::<_, 4>::from(&vec);
 
             for i in 0..vec.len() {
                 assert_eq!(p.get(i), &vec[i]);
@@ -183,7 +183,7 @@ mod tests {
         #[test]
         fn changing_input_vec_doesnt_change_arr_value() {
             let mut vec = vec![0,1,2,3];
-            let p = PointAD::<_, 4>::from(&vec);
+            let p = PointND::<_, 4>::from(&vec);
 
             for i in 0..vec.len() {
                 vec[i] = (vec[i] + 1) * 2;
@@ -201,8 +201,8 @@ mod tests {
         #[test]
         fn can_add_two_points() {
             let vec = vec![0,1,2,3];
-            let p1 = PointAD::<_, 4>::from(&vec);
-            let p2 = PointAD::from(&vec);
+            let p1 = PointND::<_, 4>::from(&vec);
+            let p2 = PointND::from(&vec);
 
             let p3 = p1 + p2;
             for (a, b) in p3.as_arr().into_iter().zip(vec){
@@ -213,8 +213,8 @@ mod tests {
         #[test]
         fn can_subtract_two_points() {
             let vec = vec![0,1,2,3];
-            let p1 = PointAD::<_, 4>::from(&vec);
-            let p2 = PointAD::from(&vec);
+            let p1 = PointND::<_, 4>::from(&vec);
+            let p2 = PointND::from(&vec);
 
             let p3 = p1 - p2;
             for (a, b) in p3.as_arr().into_iter().zip(vec){
@@ -225,8 +225,8 @@ mod tests {
         #[test]
         fn can_multiply_two_points() {
             let vec = vec![0,1,2,3];
-            let p1 = PointAD::<_, 4>::from(&vec);
-            let p2 = PointAD::from(&vec);
+            let p1 = PointND::<_, 4>::from(&vec);
+            let p2 = PointND::from(&vec);
 
             let p3 = p1 * p2;
             for (a, b) in p3.as_arr().into_iter().zip(vec){
@@ -237,8 +237,8 @@ mod tests {
         #[test]
         fn can_divide_two_points() {
             let vec = vec![1,2,3,4];
-            let p1 = PointAD::<_, 4>::from(&vec);
-            let p2 = PointAD::from(&vec);
+            let p1 = PointND::<_, 4>::from(&vec);
+            let p2 = PointND::from(&vec);
 
             let p3 = p1 / p2;
             for (a, b) in p3.as_arr().into_iter().zip(vec){
@@ -250,8 +250,8 @@ mod tests {
         #[should_panic]
         fn cannot_divide_two_points_if_one_item_is_zero() {
             let vec = vec![0, 1,2,3,4];
-            let p1 = PointAD::<_, 5>::from(&vec);
-            let p2 = PointAD::from(&vec);
+            let p1 = PointND::<_, 5>::from(&vec);
+            let p2 = PointND::from(&vec);
 
             let p3 = p1 / p2;
             for (a, b) in p3.as_arr().into_iter().zip(vec){
