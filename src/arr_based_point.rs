@@ -6,7 +6,7 @@ use std::{
     convert::TryInto,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PointAD<T, const N: usize>
     where T: Clone + Copy + Default {
     arr: [T; N],
