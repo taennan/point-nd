@@ -1,120 +1,122 @@
-pub mod arr_based_point;
 
-use std::convert::TryInto;
-use std::ops::*;
+use std::{
+    ops::{Add, Sub, Mul, Div},
+    convert::TryInto,
+};
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct PointND<T> where T: Clone + Copy + Default {
-    vec: Vec<T>
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PointAD<T, const N: usize>
+    where T: Clone + Copy + Default {
+    arr: [T; N],
 }
 
-impl<T> PointND<T> where T: Clone + Copy + Default {
+impl<T, const N: usize>  PointAD<T, N>
+    where T: Clone + Copy + Default {
 
-    pub fn from(vec: Vec<T>) -> Self {
-        if vec.len() == 0 { panic!("") }
-        PointND{ vec }
+    pub fn from(slice: &[T]) -> Self {
+        if slice.len() == 0 {
+            panic!("Cannot construct Point with zero dimensions");
+        }
+        let arr: [T; N] = slice.try_into().unwrap();
+        PointAD{ arr }
     }
 
     pub fn of_dimes(d: usize) -> Self {
-        if d == 0 { panic!(""); }
-        PointND{ vec: vec![T::default(); d] }
+        let arr = vec![T::default(); d];
+        PointAD::from(&arr)
     }
-
 
     pub fn dimes(&self) -> usize {
-        self.vec.len()
+        self.arr.len()
     }
-
-    pub fn has_same_dimes(&self, other: &Self) -> bool {
-        self.dimes() == other.dimes()
-    }
-
 
     pub fn try_get(&self, i: usize) -> Option<&T> {
-        self.vec.get(i)
+        self.arr.get(i)
     }
 
     pub fn get(&self, i: usize) -> &T {
-        self.try_get(i)
-            .expect(&format!("Tried to access value in dimension {} when PointND has only {} dimensions", i, self.dimes()))
+        self.try_get(i).unwrap()
+    }
+
+    pub fn as_arr(&self) -> [T; N] {
+        self.arr
     }
 
     pub fn as_vec(&self) -> Vec<T> {
-        self.vec.clone()
-    }
-
-    pub fn as_arr<const N: usize>(&self) -> Result<[T; N], ()> {
-        let res: Result<[T; N], Vec<T>> = self.vec.clone().try_into();
-        match res {
-            Ok(arr) => Ok(arr),
-            _ => Err(())
-        }
+        Vec::from(&self.arr[..])
     }
 
 }
 
-
-impl<T> Add for PointND<T> where T: Add<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Add for PointAD<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        if !&self.has_same_dimes(&rhs) { panic!("Tried to add two PointND's of unequal length"); }
+        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
 
-        PointND::from(
-            self.vec
-                .iter()
-                .zip(rhs.as_vec().iter())
-                .map(|(l, r)| *l + *r)
-                .collect()
-        )
+        let values_left= self.as_arr();
+        let values_right = rhs.as_arr();
+
+        let mut ret_values= [T::default(); N];
+        for i in 0..ret_values.len() {
+            ret_values[i] = values_left[i] + values_right[i];
+        }
+
+        PointAD::<T, N>::from(&ret_values)
     }
 
 }
-impl<T> Sub for PointND<T> where T: Sub<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Sub for PointAD<T, N> where T: Sub<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        if !&self.has_same_dimes(&rhs) { panic!("Tried to subtract two PointND's of unequal length"); }
+        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
 
-        PointND::from(
-            self.vec
-                .iter()
-                .zip(rhs.as_vec().iter())
-                .map(|(l, r)| *l - *r)
-                .collect()
-        )
+        let values_left= self.as_arr();
+        let values_right = rhs.as_arr();
+
+        let mut ret_values= [T::default(); N];
+        for i in 0..ret_values.len() {
+            ret_values[i] = values_left[i] - values_right[i];
+        }
+
+        PointAD::<T, N>::from(&ret_values)
     }
 
 }
-impl<T> Div for PointND<T> where T: Div<Output = T> + Clone + Copy + Default {
-
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self::Output {
-        if !&self.has_same_dimes(&rhs) { panic!("Tried to divide two PointND's of unequal length"); }
-
-        PointND::from(
-            self.vec
-                .iter()
-                .zip(rhs.as_vec().iter())
-                .map(|(l, r)| *l / *r)
-                .collect()
-        )
-    }
-
-}
-impl<T> Mul for PointND<T> where T: Mul<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Mul for PointAD<T, N> where T: Mul<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
-        if !&self.has_same_dimes(&rhs) { panic!("Tried to multiply two PointND's of unequal length"); }
+        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
 
-        PointND::from(
-            self.vec
-                .iter()
-                .zip(rhs.as_vec().iter())
-                .map(|(l, r)| *l * *r)
-                .collect()
-        )
+        let values_left= self.as_arr();
+        let values_right = rhs.as_arr();
+
+        let mut ret_values= [T::default(); N];
+        for i in 0..ret_values.len() {
+            ret_values[i] = values_left[i] * values_right[i];
+        }
+
+        PointAD::<T, N>::from(&ret_values)
+    }
+
+}
+impl<T, const N: usize> Div for PointAD<T, N> where T: Div<Output = T> + Clone + Copy + Default {
+
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
+
+        let values_left= self.as_arr();
+        let values_right = rhs.as_arr();
+
+        let mut ret_values= [T::default(); N];
+        for i in 0..ret_values.len() {
+            ret_values[i] = values_left[i] / values_right[i];
+        }
+
+        PointAD::<T, N>::from(&ret_values)
     }
 
 }
@@ -122,88 +124,141 @@ impl<T> Mul for PointND<T> where T: Mul<Output = T> + Clone + Copy + Default {
 #[cfg(test)]
 mod tests {
 
-    use crate::PointND;
+    #[cfg(test)]
+    mod constructor {
 
-    #[test]
-    fn returns_correct_dimensions_from_of_dimes_constructor() {
-        let vec = vec![1,2,3,4];
-        let dimes = vec.len();
+        use crate::*;
 
-        let p = PointND::<i32>::of_dimes(dimes);
-        assert_eq!(p.dimes(), dimes);
+        #[test]
+        fn constructable_with_from_function() {
+            let vec = vec![1,2,3,4];
+
+            let _p = PointAD::<_, 4>::from(&vec);
+            let _p = PointAD::<_, 3>::from(&vec[..3]);
+        }
+
+        #[test]
+        fn constructable_with_of_d_function() {
+            let _p = PointAD::<i32, 2>::of_dimes(2);
+        }
+
+        #[test]
+        #[should_panic]
+        fn cant_construct_with_0_dimensions() {
+            let _p = PointAD::<u8, 0>::from(&[]);
+        }
+
     }
 
-    #[test]
-    fn returns_correct_dimensions_from_from_constructor() {
-        let vec = vec![1,2,3,4];
-        let dimes = vec.len();
+    #[cfg(test)]
+    mod dimensions {
 
-        let p = PointND::from(vec);
-        assert_eq!(p.dimes(), dimes);
+        use crate::*;
+
+        #[test]
+        fn returns_correct_dimensions() {
+            let vec = vec![0,1,2,3];
+            let p = PointAD::<_, 4>::from(&vec);
+
+            assert_eq!(p.dimes(), vec.len());
+        }
+
     }
 
-    #[test]
-    fn returns_vector() {
-        let vec = vec![0,1,2,3];
-        let p1 = PointND::from(vec.clone());
-        assert_eq!(p1.as_vec(), vec);
+    #[cfg(test)]
+    mod values {
+
+        use crate::*;
+
+        #[test]
+        fn returns_value_on_get() {
+            let vec = vec![0,1,2,3];
+            let p = PointAD::<_, 4>::from(&vec);
+
+            for i in 0..vec.len() {
+                assert_eq!(p.get(i), &vec[i]);
+            }
+        }
+
+        #[test]
+        fn changing_input_vec_doesnt_change_arr_value() {
+            let mut vec = vec![0,1,2,3];
+            let p = PointAD::<_, 4>::from(&vec);
+
+            for i in 0..vec.len() {
+                vec[i] = (vec[i] + 1) * 2;
+                assert_ne!(p.get(i), &vec[i]);
+            }
+        }
+
     }
 
-    #[test]
-    fn adds() {
-        let v1 = vec![23, 45, 2];
-        let p1 = PointND::from(v1.clone());
+    #[cfg(test)]
+    mod operators {
 
-        let v2 = vec![34, 78, 1];
-        let p2 = PointND::from(v2.clone());
+        use crate::*;
 
-        let p3 = p1 + p2;
+        #[test]
+        fn can_add_two_points() {
+            let vec = vec![0,1,2,3];
+            let p1 = PointAD::<_, 4>::from(&vec);
+            let p2 = PointAD::from(&vec);
 
-        assert_eq!(p3.as_vec(), vec![v1[0] + v2[0], v1[1] + v2[1],  v1[2] + v2[2]])
-    }
+            let p3 = p1 + p2;
+            for (a, b) in p3.as_arr().into_iter().zip(vec){
+                assert_eq!(a, b + b);
+            }
+        }
 
-    #[test]
-    #[should_panic]
-    fn cant_add_points_of_unequal_length() {
-        let v1 = vec![23, 45, 2];
-        let p1 = PointND::from(v1.clone());
+        #[test]
+        fn can_subtract_two_points() {
+            let vec = vec![0,1,2,3];
+            let p1 = PointAD::<_, 4>::from(&vec);
+            let p2 = PointAD::from(&vec);
 
-        let v2 = vec![34, 78, 1, 234];
-        let p2 = PointND::from(v2.clone());
+            let p3 = p1 - p2;
+            for (a, b) in p3.as_arr().into_iter().zip(vec){
+                assert_eq!(a, b - b);
+            }
+        }
 
-        let _p3 = p1 + p2;
-    }
+        #[test]
+        fn can_multiply_two_points() {
+            let vec = vec![0,1,2,3];
+            let p1 = PointAD::<_, 4>::from(&vec);
+            let p2 = PointAD::from(&vec);
 
-    #[test]
-    fn can_be_compared() {
-        let v = vec![0,1,2];
-        let p1 = PointND::from(v);
-        let p2 = p1.clone();
-        let p3 = PointND::from(vec![2,1,0]);
+            let p3 = p1 * p2;
+            for (a, b) in p3.as_arr().into_iter().zip(vec){
+                assert_eq!(a, b * b);
+            }
+        }
 
-        assert_eq!(p1, p2);
-        assert_ne!(p1, p3);
-    }
+        #[test]
+        fn can_divide_two_points() {
+            let vec = vec![1,2,3,4];
+            let p1 = PointAD::<_, 4>::from(&vec);
+            let p2 = PointAD::from(&vec);
 
-    #[test]
-    fn returns_a_primitive_nd_array() {
-        let arr: [f64; 7] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-        let p = PointND::from(Vec::from(&arr[..]));
+            let p3 = p1 / p2;
+            for (a, b) in p3.as_arr().into_iter().zip(vec){
+                assert_eq!(a, b / b);
+            }
+        }
 
-        assert_eq!(p.as_arr().unwrap(), arr);
-    }
+        #[test]
+        #[should_panic]
+        fn cannot_divide_two_points_if_one_item_is_zero() {
+            let vec = vec![0, 1,2,3,4];
+            let p1 = PointAD::<_, 5>::from(&vec);
+            let p2 = PointAD::from(&vec);
 
-    #[test]
-    fn returns_a_non_primitive_nd_array() {
+            let p3 = p1 / p2;
+            for (a, b) in p3.as_arr().into_iter().zip(vec){
+                assert_eq!(a, b / b);
+            }
+        }
 
-        #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
-        struct Filler {}
-        impl Filler { pub fn new() -> Self { Filler{} } }
-
-        let arr = [Filler::new(); 10];
-        let p = PointND::from(Vec::from(&arr[..]));
-
-        assert_eq!(p.as_arr().unwrap(), arr);
     }
 
 }
