@@ -47,19 +47,21 @@ impl<T, const N: usize>  PointAD<T, N>
 }
 
 
-impl<T, const N: usize> Add for PointAD<T, N> where T: Add<Output = T> + Clone + Copy + Default + FromIterator<T> {
+impl<T, const N: usize> Add for PointAD<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
 
-        let vec: Vec<T> =
-            self.as_vec()
-                .iter()
-                .zip(rhs.as_vec().iter())
-                .map(|(l, r)| *l + *r)
-                .collect();
-        PointAD::<T, N>::from(&vec)
+        let values_left= self.as_arr();
+        let values_right = rhs.as_arr();
+
+        let mut ret_values= [T::default(); N];
+        for i in 0..ret_values.len() {
+            ret_values[i] = values_left[i] + values_right[i];
+        }
+
+        PointAD::<T, N>::from(&ret_values)
     }
 
 }
@@ -121,10 +123,13 @@ mod tests {
     #[test]
     fn can_add() {
         let vec = vec![0,1,2,3];
-        let p1 = PointAD::<_, 4>::from(&vec);
+        let p1 = PointAD::<i32, 4>::from(&vec);
         let p2 = PointAD::from(&vec);
 
-        let _p3 = p1 + p2;
+        let p3 = p1 + p2;
+        for (i, item) in p3.as_vec().into_iter().enumerate() {
+            assert_eq!(item, vec[i] * 2);
+        }
     }
 
 
