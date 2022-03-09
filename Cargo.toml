@@ -14,7 +14,6 @@ authors = [
 exclude = [".idea"]
 
 license = "MIT"
-license-file = "LICENSE.txt"
 
 keywords = ["point", "axes", "axis"]
 categories = ["data-structures"]
