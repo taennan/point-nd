@@ -70,7 +70,6 @@ impl<T: Clone + Copy + Default> PointND<T, 4> {
 
 }
 
-
 impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
