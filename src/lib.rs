@@ -249,7 +249,7 @@ mod tests {
         use crate::*;
 
         #[test]
-        fn can_add_two_points() {
+        fn can_add_two() {
             let vec = vec![0,1,2,3];
             let p1 = PointND::<_, 4>::from(&vec);
             let p2 = PointND::from(&vec);
@@ -261,7 +261,7 @@ mod tests {
         }
 
         #[test]
-        fn can_subtract_two_points() {
+        fn can_subtract() {
             let vec = vec![0,1,2,3];
             let p1 = PointND::<_, 4>::from(&vec);
             let p2 = PointND::from(&vec);
@@ -273,7 +273,7 @@ mod tests {
         }
 
         #[test]
-        fn can_multiply_two_points() {
+        fn can_multiply() {
             let vec = vec![0,1,2,3];
             let p1 = PointND::<_, 4>::from(&vec);
             let p2 = PointND::from(&vec);
@@ -285,7 +285,7 @@ mod tests {
         }
 
         #[test]
-        fn can_divide_two_points() {
+        fn can_divide() {
             let vec = vec![1,2,3,4];
             let p1 = PointND::<_, 4>::from(&vec);
             let p2 = PointND::from(&vec);
@@ -298,7 +298,7 @@ mod tests {
 
         #[test]
         #[should_panic]
-        fn cannot_divide_two_points_if_one_item_is_zero() {
+        fn cannot_divide_if_one_item_is_zero() {
             let vec = vec![0, 1,2,3,4];
             let p1 = PointND::<_, 5>::from(&vec);
             let p2 = PointND::from(&vec);
@@ -307,6 +307,25 @@ mod tests {
             for (a, b) in p3.as_arr().into_iter().zip(vec){
                 assert_eq!(a, b / b);
             }
+        }
+
+        #[test]
+        fn can_equal() {
+            let vec = vec![1,2,3,4];
+            let p1 = PointND::<_, 4>::from(&vec);
+            let p2 = PointND::from(&vec);
+
+            assert_eq!(p1, p2);
+        }
+
+        #[test]
+        fn can_not_equal() {
+            let vec1 = vec![1,2,3,4];
+            let p1 = PointND::<_, 4>::from(&vec1);
+            let vec2 = vec![5,6,7,8];
+            let p2 = PointND::from(&vec2);
+
+            assert_ne!(p1, p2);
         }
 
     }
