@@ -15,5 +15,5 @@ exclude = [".idea"]
 
 license = "MIT"
 
-keywords = ["point", "axes", "axis"]
+keywords = ["point", "geometry", "multidimensional", "axes", "axis"]
 categories = ["data-structures"]
