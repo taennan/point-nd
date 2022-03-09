@@ -3,4 +3,18 @@ name = "point-nd"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+description = "A simple and flexible data structure for modelling points on an axis"
+
+repository = "https://github.com/taennan/point-nd/tree/main"
+
+authors = [
+    "Taennan taennan@zohomail.com"
+]
+
+exclude = [".idea"]
+
+license = "MIT"
+license-file = "LICENSE.txt"
+
+keywords = ["point", "axes", "axis"]
+categories = ["data-structures"]
