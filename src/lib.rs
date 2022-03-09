@@ -48,6 +48,29 @@ impl<T, const N: usize>  PointND<T, N>
 
 }
 
+impl<T: Clone + Copy + Default> PointND<T, 2> {
+
+    pub fn x(&self) -> T { self.arr[0] }
+    pub fn y(&self) -> T { self.arr[1] }
+
+}
+impl<T: Clone + Copy + Default> PointND<T, 3> {
+
+    pub fn x(&self) -> T { self.arr[0] }
+    pub fn y(&self) -> T { self.arr[1] }
+    pub fn z(&self) -> T { self.arr[2] }
+
+}
+impl<T: Clone + Copy + Default> PointND<T, 4> {
+
+    pub fn x(&self) -> T { self.arr[0] }
+    pub fn y(&self) -> T { self.arr[1] }
+    pub fn z(&self) -> T { self.arr[2] }
+    pub fn w(&self) -> T { self.arr[3] }
+
+}
+
+
 impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
@@ -178,6 +201,34 @@ mod tests {
             for i in 0..vec.len() {
                 assert_eq!(p.get(i), &vec[i]);
             }
+        }
+
+        #[test]
+        fn convenience_getters_for_2d_points_work() {
+            let vec = vec![0,1];
+            let p = PointND::<_, 2>::from(&vec);
+
+            assert_eq!(p.x(), vec[0]);
+            assert_eq!(p.y(), vec[1]);
+        }
+        #[test]
+        fn convenience_getters_for_3d_points_work() {
+            let vec = vec![0,1,2];
+            let p = PointND::<_, 3>::from(&vec);
+
+            assert_eq!(p.x(), vec[0]);
+            assert_eq!(p.y(), vec[1]);
+            assert_eq!(p.z(), vec[2]);
+        }
+        #[test]
+        fn convenience_getters_for_4d_points_work() {
+            let vec = vec![0,1,2,3];
+            let p = PointND::<_, 4>::from(&vec);
+
+            assert_eq!(p.x(), vec[0]);
+            assert_eq!(p.y(), vec[1]);
+            assert_eq!(p.z(), vec[2]);
+            assert_eq!(p.w(), vec[3]);
         }
 
         #[test]
