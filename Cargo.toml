@@ -15,5 +15,5 @@ exclude = [".idea", ".gitignore"]
 
 license = "MIT"
 
-keywords = ["point", "geometry", "multidimensional", "axes", "axis"]
+keywords = ["point", "geometry", "multidimensional", "coordinate"]
 categories = ["data-structures"]
