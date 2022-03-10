@@ -153,8 +153,20 @@ impl<T, const N: usize>  PointND<T, N>
 
 
     /**
+     Returns a new ```PointND``` from the values contained by self after applying the modifier function to them
+
+     ### Examples
+
+     ```
+     use point_nd::PointND;
+
+     let p = PointND::<i32, 3>::from(&[0, 1, 2]);
+     let p = p.apply(|item| item * 10);
+
+     assert_eq!(p.as_arr(), [0, 10, 20]);
+     ```
      */
-    pub fn apply<F>(&self, modifier: F) -> Self
+    pub fn apply<F>(self, modifier: F) -> Self
         where F: Fn(T) -> T {
 
         let mut vec = Vec::<T>::with_capacity(N);
@@ -166,8 +178,24 @@ impl<T, const N: usize>  PointND<T, N>
     }
 
     /**
+     Returns a new ```PointND``` from the values at the specified dimensions after applying the modifier function to them
+
+     Any values at dimensions that were not specified are passed as is
+
+     If any dimensions specified are out of bounds, this method will ignore it
+
+    ### Examples
+
+     ```
+     use point_nd::PointND;
+
+     let p = PointND::<i32, 4>::from(&[0, 1, 2, 3]);
+     let p = p.apply_dims(&[1, 2], |item| item * 2);
+
+     assert_eq!(p.as_arr(), [0, 2, 4, 3]);
+     ```
      */
-    pub fn apply_dims<F>(&self, dims: &[usize], modifier: F) -> Self
+    pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Self
         where F: Fn(T) -> T {
 
         let mut vec = Vec::<T>::with_capacity(N);
@@ -183,12 +211,24 @@ impl<T, const N: usize>  PointND<T, N>
     }
 
     /**
+     Returns a new ```PointND``` from the values specified and those contained by self after applying the modifier to both
+
+     ### Examples
+
+     ```
+     use point_nd::PointND;
+
+     let p = PointND::<i32, 3>::from(&[0, 1, 2]);
+     let p = p.apply_with([1, 2, 3], |a, b| a + b);
+
+     assert_eq!(p.as_arr(), [1, 3, 5]);
+     ```
      */
-    pub fn apply_with<F>(&self, values: [T; N], modifier: F) -> Self
-        where F: Fn(T) -> T {
+    pub fn apply_with<F>(self, values: [T; N], modifier: F) -> Self
+        where F: Fn(T, T) -> T {
 
         let mut vec = Vec::<T>::with_capacity(N);
-        for (a, b) in self.as_arr().zip(values) {
+        for (a, b) in self.as_arr().into_iter().zip(values) {
             vec.push(modifier(a, b));
         }
 
