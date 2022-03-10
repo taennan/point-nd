@@ -1,6 +1,6 @@
 [package]
 name = "point-nd"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 description = "A simple and flexible data structure for modelling points on an axis"
