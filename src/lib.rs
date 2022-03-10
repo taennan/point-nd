@@ -20,7 +20,7 @@ use std::{
 
 The whole _point_ of the crate (get it?)
 
-It really is just a small wrapper around an array with convenience methods for accessing values if it's dimensions are ```1..=4```
+It really is just a small wrapper around an array with convenience methods for accessing values if it's dimensions are within ```1..=4```
 
 # Examples
 
@@ -33,16 +33,20 @@ If a point of zero dimensions is constructed, it will panic
 ```
 use point_nd::PointND;
 
+// Creates a 2D point from values of a given vector or array
+let vec: Vec<i32> = vec![0, 1];
+let p: PointND<_, 2> = PointND::from(&vec);
+
 // Creates a 3D point with all values set to 5
 //  When using this function, complete type annotation is necessary
 let p: PointND<i32, 3> = PointND::fill(5);
 
-// Creates a 2D point from values of a given vector or array
-let vec = vec![0, 1];
-let p: PointND<_, 2> = PointND::from(&vec);
-
-// ERROR:
+// ERROR: Can't create a point with zero dimensions
 // let p: PointND<_, 0> = PointND::fill(9);
+
+// If you don't like writing PointND twice, use this syntax instead
+//  Note: The second generic must still be specified
+let p = PointND::<_, 2>::from(&vec);
 ```
 
 ## Accessing Values
@@ -67,7 +71,7 @@ let y = p.y();
 // ...
 // let w = p.w();
 
-assert_eq!(y, &arr[1]);
+assert_eq!(*y, arr[1]);
 ```
 
 Otherwise indexing or the ```get()``` method can be used
@@ -81,10 +85,11 @@ let p: PointND<_, 2> = PointND::from(&arr);
 // Safely getting
 //  Returns None if index is out of bounds
 let x: Option<&i32> = p.get(0);
-assert_eq!(x.unwrap(), &arr[0]);
+assert_eq!(*x.unwrap(), arr[0]);
 
 // Unsafely indexing
 //  If the index is out of bounds, this will panic
+//  Note that unlike other accessing methods, this will return a copy of the value
 let y: i32 = p[1];
 assert_eq!(y, arr[1]);
 ```
@@ -385,7 +390,7 @@ impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone +
 // Indexing operators
 impl<I, T, const N: usize> Index<I> for PointND<T, N> where T: Clone + Copy, I: Sized + SliceIndex<[T], Output = T> {
     type Output = T;
-    fn index(&self, index: I) -> &Self::Output {
+    fn index(&self, index: I) -> & Self::Output {
         &self.arr[index]
     }
 }
@@ -634,6 +639,44 @@ mod tests {
             let p2 = PointND::from(&vec2);
 
             assert_ne!(p1, p2);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod modifiers {
+
+        use crate::*;
+
+        #[test]
+        fn apply_does_work() {
+
+            let arr = [0, 1, 2];
+            let arr_to_be = [0, 2, 4];
+
+            let p = PointND::<_, 3>::from(&arr).apply(|i| i * 2);
+            assert_eq!(p.as_arr(), arr_to_be);
+        }
+
+        #[test]
+        fn apply_dims_does_work() {
+
+            let arr = [0, 1, 2, 3, 4];
+            let arr_to_be = [0, 1, 4, 3, 16];
+
+            let p = PointND::<_, 5>::from(&arr).apply_dims(&[2, 4], |i| i * i);
+            assert_eq!(p.as_arr(), arr_to_be);
+        }
+
+        #[test]
+        fn apply_with_does_work() {
+
+            let arr = [0, 1, 2];
+            let apply_values = [10, 20, 30];
+            let arr_to_be = [10, 21, 32];
+
+            let p = PointND::<_, 3>::from(&arr).apply_with(apply_values, |a, b| a + b);
+            assert_eq!(p.as_arr(), arr_to_be);
         }
 
     }
