@@ -1,9 +1,54 @@
+/*!
+
+A simple multidimensional point struct, based on an array.
+
+See the ```PointND``` struct for basic usage
+
+ */
 
 use std::{
     ops::{Add, Sub, Mul, Div},
     convert::TryInto,
 };
 
+/**
+
+The whole point of the crate (no pun intended)
+
+# Examples
+
+## Creating a 3 dimensional point
+
+All values within the point will be initialised with their default values, in this case 0i32
+```
+use point_nd::PointND;
+let p: PointND<i32, 3> = PointND::fill(3);
+```
+
+## Creating a 2 dimensional point with preset values
+```
+use point_nd::PointND;
+
+let vec = vec![0, 1];
+let p: PointND<_, 2> = PointND::from(&vec);
+```
+
+## Accessing values
+```
+use point_nd::PointND;
+
+let p: PointND<i32, 2> = PointND::from(&[0,1]);
+
+// Safely
+let x: Option<&i32> = p.try_get(0);
+// Unsafely
+let x: &i32 = p.get(0);
+
+// Depending on the number of dimensions of the point...
+let x: i32= p.x();
+```
+
+ */
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PointND<T, const N: usize>
     where T: Clone + Copy + Default {
@@ -21,12 +66,12 @@ impl<T, const N: usize>  PointND<T, N>
         PointND { arr }
     }
 
-    pub fn of_dimes(d: usize) -> Self {
-        let arr = vec![T::default(); d];
-        PointND::from(&arr)
+    pub fn fill(value: T) -> Self {
+        PointND::<T, N>::from(&[value; N])
     }
 
-    pub fn dimes(&self) -> usize {
+
+    pub fn dims(&self) -> usize {
         self.arr.len()
     }
 
@@ -38,6 +83,7 @@ impl<T, const N: usize>  PointND<T, N>
         self.try_get(i).unwrap()
     }
 
+
     pub fn as_arr(&self) -> [T; N] {
         self.arr
     }
@@ -48,6 +94,12 @@ impl<T, const N: usize>  PointND<T, N>
 
 }
 
+// Convenience Getters
+impl<T: Clone + Copy + Default> PointND<T, 1> {
+
+    pub fn x(&self) -> T { self.arr[0] }
+
+}
 impl<T: Clone + Copy + Default> PointND<T, 2> {
 
     pub fn x(&self) -> T { self.arr[0] }
@@ -70,11 +122,12 @@ impl<T: Clone + Copy + Default> PointND<T, 4> {
 
 }
 
+// Basic math operators
 impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
+        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
@@ -92,7 +145,7 @@ impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone +
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
+        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
@@ -110,7 +163,7 @@ impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone +
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
-        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
+        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
@@ -128,7 +181,7 @@ impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone +
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
-        if &self.dimes() != &rhs.dimes() { panic!("Tried to add two PointND's of unequal length"); }
+        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
@@ -160,8 +213,32 @@ mod tests {
         }
 
         #[test]
-        fn constructable_with_of_d_function() {
-            let _p = PointND::<i32, 2>::of_dimes(2);
+        fn constructable_with_fill_function() {
+
+            #[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
+            struct A {
+                pub x: i32
+            }
+            impl A {
+                pub fn new(x: i32) -> Self { A{ x } }
+            }
+            impl Add for A {
+                type Output = Self;
+                fn add(self, rhs: Self) -> Self::Output {
+                    A::new(self.x + rhs.x)
+                }
+            }
+
+            let p = PointND::<A, 3>::fill(A::new(0));
+            let p = p + PointND::from(&[
+                A::new(1),
+                A::new(2),
+                A::new(3)
+            ]);
+
+            assert_ne!(p.x(), p.y());
+            assert_ne!(p.x(), p.z());
+            assert_ne!(p.y(), p.z());
         }
 
         #[test]
@@ -182,7 +259,7 @@ mod tests {
             let vec = vec![0,1,2,3];
             let p = PointND::<_, 4>::from(&vec);
 
-            assert_eq!(p.dimes(), vec.len());
+            assert_eq!(p.dims(), vec.len());
         }
 
     }
