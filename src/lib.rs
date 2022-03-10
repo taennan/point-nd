@@ -106,7 +106,7 @@ assert_eq!(p.dims(), 2);
 ```
 
  */
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PointND<T, const N: usize>
     where T: Clone + Copy  {
     arr: [T; N],
@@ -186,6 +186,7 @@ impl<T, const N: usize>  PointND<T, N>
      assert_eq!(p.as_arr(), [0, 10, 20]);
      ```
      */
+    // Did not call apply_dims() inside this to avoid the dimension checks it does
     pub fn apply<F>(self, modifier: F) -> Self
         where F: Fn(T) -> T {
 
@@ -241,12 +242,12 @@ impl<T, const N: usize>  PointND<T, N>
 
      // Adds each item in the PointND with their respective items in the array
      let p = PointND::<i32, 3>::from(&[0, 1, 2]);
-     let p = p.apply_with([1, 2, 3], |a, b| a + b);
+     let p = p.apply_vals([1, 2, 3], |a, b| a + b);
 
      assert_eq!(p.as_arr(), [1, 3, 5]);
      ```
      */
-    pub fn apply_with<F>(self, values: [T; N], modifier: F) -> Self
+    pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Self
         where F: Fn(T, T) -> T {
 
         let mut vec = Vec::<T>::with_capacity(N);
@@ -255,6 +256,15 @@ impl<T, const N: usize>  PointND<T, N>
         }
 
         PointND::<T, N>::from(&vec)
+    }
+
+    /**
+
+     */
+    pub fn apply_with<F>(self, other: PointND<T, N>, modifier: F) -> Self
+        where F: Fn(T, T) -> T {
+
+        self.apply_vals(other.as_arr(), modifier)
     }
 
 }
@@ -688,13 +698,13 @@ mod tests {
         }
 
         #[test]
-        fn apply_with_does_work() {
+        fn apply_vals_does_work() {
 
             let arr = [0, 1, 2];
             let apply_values = [10, 20, 30];
             let arr_to_be = [10, 21, 32];
 
-            let p = PointND::<_, 3>::from(&arr).apply_with(apply_values, |a, b| a + b);
+            let p = PointND::<_, 3>::from(&arr).apply_vals(apply_values, |a, b| a + b);
             assert_eq!(p.as_arr(), arr_to_be);
         }
 
