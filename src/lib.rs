@@ -153,6 +153,50 @@ impl<T, const N: usize>  PointND<T, N>
 
 
     /**
+     */
+    pub fn apply<F>(&self, modifier: F) -> Self
+        where F: Fn(T) -> T {
+
+        let mut vec = Vec::<T>::with_capacity(N);
+        for item in self.as_arr() {
+            vec.push(modifier(item));
+        }
+
+        PointND::<T, N>::from(&vec)
+    }
+
+    /**
+     */
+    pub fn apply_dims<F>(&self, dims: &[usize], modifier: F) -> Self
+        where F: Fn(T) -> T {
+
+        let mut vec = Vec::<T>::with_capacity(N);
+        for (i, item) in self.as_arr().into_iter().enumerate() {
+            if dims.contains(&i) {
+                vec.push(modifier(item));
+            } else {
+                vec.push(item);
+            }
+        }
+
+        PointND::<T, N>::from(&vec)
+    }
+
+    /**
+     */
+    pub fn apply_with<F>(&self, values: [T; N], modifier: F) -> Self
+        where F: Fn(T) -> T {
+
+        let mut vec = Vec::<T>::with_capacity(N);
+        for (a, b) in self.as_arr().zip(values) {
+            vec.push(modifier(a, b));
+        }
+
+        PointND::<T, N>::from(&vec)
+    }
+
+
+    /**
      Returns an array of all the values contained by the point
      */
     pub fn as_arr(&self) -> [T; N] {
