@@ -113,6 +113,7 @@ pub struct PointND<T, const N: usize>
     arr: [T; N],
 }
 
+// Constructors
 impl<T, const N: usize>  PointND<T, N>
     where T: Clone + Copy  {
 
@@ -142,6 +143,12 @@ impl<T, const N: usize>  PointND<T, N>
         PointND::<T, N>::from(&[value; N])
     }
 
+}
+
+// Standard Getters
+impl<T, const N: usize>  PointND<T, N>
+    where T: Clone + Copy  {
+
 
     /**
      Returns the number of dimensions of the point (a 2D point will return 2, a 3D point 3, _etc_)
@@ -159,6 +166,11 @@ impl<T, const N: usize>  PointND<T, N>
         self.arr.get(dim)
     }
 
+}
+
+// Modifiers
+impl<T, const N: usize>  PointND<T, N>
+    where T: Clone + Copy  {
 
     /**
      Returns a new ```PointND``` from the values contained by self after applying the modifier function to them
@@ -243,6 +255,11 @@ impl<T, const N: usize>  PointND<T, N>
         PointND::<T, N>::from(&vec)
     }
 
+}
+
+// Wholesale Getters
+impl<T, const N: usize>  PointND<T, N>
+    where T: Clone + Copy  {
 
     /**
      Returns a pointer to the array values stored by self
@@ -250,7 +267,7 @@ impl<T, const N: usize>  PointND<T, N>
     pub fn values(&self) -> &[T; N] {
         &self.arr
     }
-    
+
     /**
      Returns an array of all the values contained by the point
      */
@@ -267,7 +284,7 @@ impl<T, const N: usize>  PointND<T, N>
 
 }
 
-// Convenience Getters
+// Convenience Getters amd Setters
 /// Function for safely getting and setting the first value contained by a 1D ```PointND```
 impl<T> PointND<T, 1> where T: Clone + Copy  {
 
