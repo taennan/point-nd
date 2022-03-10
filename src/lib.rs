@@ -180,6 +180,7 @@ impl<T, const N: usize>  PointND<T, N>
      ```
      use point_nd::PointND;
 
+     // Multiplies each item by 10
      let p = PointND::<i32, 3>::from(&[0, 1, 2]);
      let p = p.apply(|item| item * 10);
 
@@ -209,6 +210,7 @@ impl<T, const N: usize>  PointND<T, N>
      ```
      use point_nd::PointND;
 
+     // Multiplies items at indexes 1 and 2 by 2
      let p = PointND::<i32, 4>::from(&[0, 1, 2, 3]);
      let p = p.apply_dims(&[1, 2], |item| item * 2);
 
@@ -237,7 +239,8 @@ impl<T, const N: usize>  PointND<T, N>
 
      ```
      use point_nd::PointND;
-
+     
+     // Adds each item in the PointND with their respective items in the array
      let p = PointND::<i32, 3>::from(&[0, 1, 2]);
      let p = p.apply_with([1, 2, 3], |a, b| a + b);
 
@@ -284,7 +287,7 @@ impl<T, const N: usize>  PointND<T, N>
 
 }
 
-// Convenience Getters amd Setters
+// Convenience Getters and Setters
 /// Function for safely getting and setting the first value contained by a 1D ```PointND```
 impl<T> PointND<T, 1> where T: Clone + Copy  {
 
