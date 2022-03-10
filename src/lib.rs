@@ -708,6 +708,18 @@ mod tests {
             assert_eq!(p.as_arr(), arr_to_be);
         }
 
+        #[test]
+        fn apply_with_works() {
+
+            let p1 = PointND::<i32, 3>::fill(1);
+            let p2 = PointND::<_, 3>::from(&[10, 3, 45]);
+
+            let arr_to_be = [-9, -2, -44];
+            
+            let p = p1.apply_with(p2, |a, b| a - b);
+            assert_eq!(p.as_arr(), arr_to_be);
+        }
+
     }
 
 }

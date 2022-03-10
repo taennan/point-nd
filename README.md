@@ -1,7 +1,7 @@
 
 # PointND
 
-A simple and flexible data structure for modelling points on an axis
+A simple and flexible data structure for modelling points of **any** dimensions on an axis
 
 ## Basic Usage
 
