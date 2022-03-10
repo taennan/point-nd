@@ -8,8 +8,10 @@ See the ```PointND``` struct for basic usage
 
 use std::{
     ops::{Add, Sub, Mul, Div},
+    slice::SliceIndex,
     convert::TryInto,
 };
+use std::ops::Index;
 
 /**
 
@@ -17,35 +19,50 @@ The whole point of the crate (no pun intended)
 
 # Examples
 
-## Creating a 3 dimensional point
+## Constructing a Point
 
-All values within the point will be initialised with their default values, in this case 0i32
-```
-use point_nd::PointND;
-let p: PointND<i32, 3> = PointND::fill(3);
-```
+No matter how a PointND is constructed, the second generic arg must be filled with the number of dimensions it needs to have
 
-## Creating a 2 dimensional point with preset values
 ```
 use point_nd::PointND;
 
+// Creates a 3D point with all values set to 5
+//  When using this function, complete type annotation is necessary
+let p: PointND<i32, 3> = PointND::fill(5);
+
+// Creates a 2D point from values of a given vector or array
 let vec = vec![0, 1];
 let p: PointND<_, 2> = PointND::from(&vec);
 ```
 
-## Accessing values
+## Accessing Values
 ```
 use point_nd::PointND;
 
-let p: PointND<i32, 2> = PointND::from(&[0,1]);
+let arr: [i32; 2] = [0,1];
+let p: PointND<_, 2> = PointND::from(&arr);
 
 // Safely
-let x: Option<&i32> = p.try_get(0);
+let x: Option<&i32> = p.get(0);
 // Unsafely
-let x: &i32 = p.get(0);
+let x: i32 = p[0];
+
+assert_eq!(x, arr[0]);
 
 // Depending on the number of dimensions of the point...
-let x: i32= p.x();
+let x: i32 = p.x();
+let y: i32 = p.y();
+
+assert_eq!(y, arr[1]);
+```
+
+## Querying Size
+
+```
+use point_nd::PointND;
+
+let p: PointND<i32, 2> = PointND::fill(10);
+assert_eq!(p.dims(), 2);
 ```
 
  */
@@ -75,12 +92,8 @@ impl<T, const N: usize>  PointND<T, N>
         self.arr.len()
     }
 
-    pub fn try_get(&self, i: usize) -> Option<&T> {
+    pub fn get(&self, i: usize) -> Option<&T> {
         self.arr.get(i)
-    }
-
-    pub fn get(&self, i: usize) -> &T {
-        self.try_get(i).unwrap()
     }
 
 
@@ -122,7 +135,7 @@ impl<T: Clone + Copy + Default> PointND<T, 4> {
 
 }
 
-// Basic math operators
+// Basic operators
 impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy + Default {
 
     type Output = Self;
@@ -196,6 +209,13 @@ impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone +
 
 }
 
+impl<I, T, const N: usize> Index<I> for PointND<T, N> where T: Clone + Copy + Default, I: Sized + SliceIndex<[T], Output = T> {
+    type Output = T;
+    fn index(&self, index: I) -> &Self::Output {
+        &self.arr[index]
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -243,8 +263,13 @@ mod tests {
 
         #[test]
         #[should_panic]
-        fn cant_construct_with_0_dimensions() {
+        fn cant_construct_0_dim_point_with_from_function() {
             let _p = PointND::<u8, 0>::from(&[]);
+        }
+        #[test]
+        #[should_panic]
+        fn cant_construct_0_dim_point_with_fill_function() {
+            let _p = PointND::<u8, 0>::fill(0);
         }
 
     }
@@ -275,10 +300,17 @@ mod tests {
             let p = PointND::<_, 4>::from(&vec);
 
             for i in 0..vec.len() {
-                assert_eq!(p.get(i), &vec[i]);
+                assert_eq!(p.get(i).unwrap(), &vec[i]);
             }
         }
 
+        #[test]
+        fn convenience_getters_for_1d_points_work() {
+            let vec = vec![0];
+            let p = PointND::<_, 1>::from(&vec);
+
+            assert_eq!(p.x(), vec[0]);
+        }
         #[test]
         fn convenience_getters_for_2d_points_work() {
             let vec = vec![0,1];
@@ -307,23 +339,19 @@ mod tests {
             assert_eq!(p.w(), vec[3]);
         }
 
-        #[test]
-        fn changing_input_vec_doesnt_change_arr_value() {
-            let mut vec = vec![0,1,2,3];
-            let p = PointND::<_, 4>::from(&vec);
-
-            for i in 0..vec.len() {
-                vec[i] = (vec[i] + 1) * 2;
-                assert_ne!(p.get(i), &vec[i]);
-            }
-        }
-
     }
 
     #[cfg(test)]
     mod operators {
 
         use crate::*;
+
+        #[test]
+        #[should_panic]
+        fn cannot_index_out_of_bounds() {
+            let p = PointND::<i32, 3>::from(&[0,1,2]);
+            let _x = p[p.dims() + 1];
+        }
 
         #[test]
         fn can_add_two() {
