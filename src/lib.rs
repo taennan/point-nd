@@ -7,11 +7,14 @@ See the ```PointND``` struct for basic usage
  */
 
 use std::{
-    ops::{Add, Sub, Mul, Div},
+    ops::{
+        Add, Sub, Mul, Div,
+        Index, IndexMut
+    },
     slice::SliceIndex,
     convert::TryInto,
 };
-use std::ops::Index;
+
 
 /**
 
@@ -253,28 +256,37 @@ impl<T, const N: usize>  PointND<T, N>
 }
 
 // Convenience Getters
-/// Function for safely returning the first value contained by a 1D ```PointND```
+/// Function for safely getting and setting the first value contained by a 1D ```PointND```
 impl<T> PointND<T, 1> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
 
+    pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
+
 }
-/// Functions for safely returning the first and second values contained by a 2D ```PointND```
+/// Functions for safely getting and setting the first and second values contained by a 2D ```PointND```
 impl<T> PointND<T, 2> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
     pub fn y(&self) -> T { self.arr[1] }
 
+    pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
+    pub fn set_y(&mut self, new_value: T) { self.arr[1] = new_value; }
+
 }
-/// Functions for safely returning the first, second and third values contained by a 3D ```PointND```
+/// Functions for safely getting and setting the first, second and third values contained by a 3D ```PointND```
 impl<T> PointND<T, 3> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
     pub fn y(&self) -> T { self.arr[1] }
     pub fn z(&self) -> T { self.arr[2] }
 
+    pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
+    pub fn set_y(&mut self, new_value: T) { self.arr[1] = new_value; }
+    pub fn set_z(&mut self, new_value: T) { self.arr[2] = new_value; }
+
 }
-/// Functions for safely returning the first, second, third and fourth values contained by a 4D ```PointND```
+/// Functions for safely getting and setting the first, second, third and fourth values contained by a 4D ```PointND```
 impl<T> PointND<T, 4> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
@@ -282,9 +294,14 @@ impl<T> PointND<T, 4> where T: Clone + Copy {
     pub fn z(&self) -> T { self.arr[2] }
     pub fn w(&self) -> T { self.arr[3] }
 
+    pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
+    pub fn set_y(&mut self, new_value: T) { self.arr[1] = new_value; }
+    pub fn set_z(&mut self, new_value: T) { self.arr[2] = new_value; }
+    pub fn set_w(&mut self, new_value: T) { self.arr[3] = new_value; }
+
 }
 
-// Basic operators
+// Basic math operators
 impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy {
 
     type Output = Self;
@@ -358,12 +375,19 @@ impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone +
 
 }
 
+// Indexing operators
 impl<I, T, const N: usize> Index<I> for PointND<T, N> where T: Clone + Copy, I: Sized + SliceIndex<[T], Output = T> {
     type Output = T;
     fn index(&self, index: I) -> &Self::Output {
         &self.arr[index]
     }
 }
+impl<I, T, const N: usize> IndexMut<I> for PointND<T, N> where T: Clone + Copy, I: Sized + SliceIndex<[T], Output = T> {
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        &mut self.arr[index]
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -497,9 +521,32 @@ mod tests {
 
         #[test]
         #[should_panic]
-        fn cannot_index_out_of_bounds() {
+        fn cannot_get_index_out_of_bounds() {
             let p = PointND::<i32, 3>::from(&[0,1,2]);
             let _x = p[p.dims() + 1];
+        }
+
+        #[test]
+        fn can_set_value_by_index() {
+
+            let arr = [0, 1, 2];
+            let mut p = PointND::<_, 3>::from(&arr);
+
+            let new_val = 9999;
+            p[1] = new_val;
+
+            assert_eq!(p.as_arr(), [0, new_val, 2]);
+        }
+
+        #[test]
+        #[should_panic]
+        fn cannot_set_out_of_bounds_value() {
+
+            let arr = [0, 1, 2];
+            let mut p = PointND::<_, 3>::from(&arr);
+
+            let new_val = 9999;
+            p[1002] = new_val;
         }
 
         #[test]
