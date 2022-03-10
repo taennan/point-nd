@@ -57,7 +57,7 @@ let arr: [i32; 2] = [0,1];
 let p: PointND<_, 2> = PointND::from(&arr);
 
 // As the point has 2 dimensions, we can access it's values with the x() and y() methods
-let x: i32 = p.x();
+let x: &i32 = p.x();
 let y = p.y();
 
 // If the point had 3 dimensions, we could use the above and:
@@ -67,7 +67,7 @@ let y = p.y();
 // ...
 // let w = p.w();
 
-assert_eq!(y, arr[1]);
+assert_eq!(y, &arr[1]);
 ```
 
 Otherwise indexing or the ```get()``` method can be used
@@ -80,8 +80,8 @@ let p: PointND<_, 2> = PointND::from(&arr);
 
 // Safely getting
 //  Returns None if index is out of bounds
-let x: Option<i32> = p.get(0);
-assert_eq!(x.unwrap(), arr[0]);
+let x: Option<&i32> = p.get(0);
+assert_eq!(x.unwrap(), &arr[0]);
 
 // Unsafely indexing
 //  If the index is out of bounds, this will panic
@@ -104,12 +104,12 @@ assert_eq!(p.dims(), 2);
  */
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PointND<T, const N: usize>
-    where T: Clone + Copy {
+    where T: Clone + Copy  {
     arr: [T; N],
 }
 
 impl<T, const N: usize>  PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone + Copy  {
 
     /**
      Returns a new ```PointND``` with values from the specified array or vector
@@ -150,8 +150,8 @@ impl<T, const N: usize>  PointND<T, N>
 
      The value of the first dimension is indexed at ```0``` for easier interoperability with standard indexing
      */
-    pub fn get(&self, dim: usize) -> Option<T> {
-        self.arr.get(dim).copied()
+    pub fn get(&self, dim: usize) -> Option<&T> {
+        self.arr.get(dim)
     }
 
 
@@ -240,10 +240,17 @@ impl<T, const N: usize>  PointND<T, N>
 
 
     /**
+     Returns a pointer to the array values stored by self
+     */
+    pub fn values(&self) -> &[T; N] {
+        &self.arr
+    }
+    
+    /**
      Returns an array of all the values contained by the point
      */
     pub fn as_arr(&self) -> [T; N] {
-        self.arr
+        self.arr.clone()
     }
 
     /**
@@ -257,29 +264,29 @@ impl<T, const N: usize>  PointND<T, N>
 
 // Convenience Getters
 /// Function for safely getting and setting the first value contained by a 1D ```PointND```
-impl<T> PointND<T, 1> where T: Clone + Copy {
+impl<T> PointND<T, 1> where T: Clone + Copy  {
 
-    pub fn x(&self) -> T { self.arr[0] }
+    pub fn x(&self) -> &T { &self.arr[0] }
 
     pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
 
 }
 /// Functions for safely getting and setting the first and second values contained by a 2D ```PointND```
-impl<T> PointND<T, 2> where T: Clone + Copy {
+impl<T> PointND<T, 2> where T: Clone + Copy  {
 
-    pub fn x(&self) -> T { self.arr[0] }
-    pub fn y(&self) -> T { self.arr[1] }
+    pub fn x(&self) -> &T { &self.arr[0] }
+    pub fn y(&self) -> &T { &self.arr[1] }
 
     pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
     pub fn set_y(&mut self, new_value: T) { self.arr[1] = new_value; }
 
 }
 /// Functions for safely getting and setting the first, second and third values contained by a 3D ```PointND```
-impl<T> PointND<T, 3> where T: Clone + Copy {
+impl<T> PointND<T, 3> where T: Clone + Copy  {
 
-    pub fn x(&self) -> T { self.arr[0] }
-    pub fn y(&self) -> T { self.arr[1] }
-    pub fn z(&self) -> T { self.arr[2] }
+    pub fn x(&self) -> &T { &self.arr[0] }
+    pub fn y(&self) -> &T { &self.arr[1] }
+    pub fn z(&self) -> &T { &self.arr[2] }
 
     pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
     pub fn set_y(&mut self, new_value: T) { self.arr[1] = new_value; }
@@ -287,12 +294,12 @@ impl<T> PointND<T, 3> where T: Clone + Copy {
 
 }
 /// Functions for safely getting and setting the first, second, third and fourth values contained by a 4D ```PointND```
-impl<T> PointND<T, 4> where T: Clone + Copy {
+impl<T> PointND<T, 4> where T: Clone + Copy  {
 
-    pub fn x(&self) -> T { self.arr[0] }
-    pub fn y(&self) -> T { self.arr[1] }
-    pub fn z(&self) -> T { self.arr[2] }
-    pub fn w(&self) -> T { self.arr[3] }
+    pub fn x(&self) -> &T { &self.arr[0] }
+    pub fn y(&self) -> &T { &self.arr[1] }
+    pub fn z(&self) -> &T { &self.arr[2] }
+    pub fn w(&self) -> &T { &self.arr[3] }
 
     pub fn set_x(&mut self, new_value: T) { self.arr[0] = new_value; }
     pub fn set_y(&mut self, new_value: T) { self.arr[1] = new_value; }
@@ -302,72 +309,72 @@ impl<T> PointND<T, 4> where T: Clone + Copy {
 }
 
 // Basic math operators
-impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy {
+impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy  {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
-        let values_left= self.as_arr();
-        let values_right = rhs.as_arr();
+        let values_left= self.values();
+        let values_right = rhs.values();
 
         let mut ret_values = Vec::<T>::with_capacity(N);
         for i in 0..N {
-            ret_values.push(values_left[i] + values_right[i]);
+            ret_values.push(values_left[i].clone() + values_right[i].clone());
         }
 
         PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone + Copy {
+impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone + Copy  {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
-        let values_left= self.as_arr();
-        let values_right = rhs.as_arr();
+        let values_left= self.values();
+        let values_right = rhs.values();
 
         let mut ret_values = Vec::<T>::with_capacity(N);
         for i in 0..N {
-            ret_values.push(values_left[i] - values_right[i]);
+            ret_values.push(values_left[i].clone() - values_right[i].clone());
         }
 
         PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone + Copy {
+impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone + Copy  {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
-        let values_left= self.as_arr();
-        let values_right = rhs.as_arr();
+        let values_left= self.values();
+        let values_right = rhs.values();
 
         let mut ret_values = Vec::<T>::with_capacity(N);
         for i in 0..N {
-            ret_values.push(values_left[i] * values_right[i]);
+            ret_values.push(values_left[i].clone() * values_right[i].clone());
         }
 
         PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone + Copy {
+impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone + Copy  {
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
         if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
 
-        let values_left= self.as_arr();
-        let values_right = rhs.as_arr();
+        let values_left= self.values();
+        let values_right = rhs.values();
 
         let mut ret_values = Vec::<T>::with_capacity(N);
         for i in 0..N {
-            ret_values.push(values_left[i] / values_right[i]);
+            ret_values.push(values_left[i].clone() / values_right[i].clone());
         }
 
         PointND::<T, N>::from(&ret_values)
@@ -408,7 +415,7 @@ mod tests {
         #[test]
         fn constructable_with_fill_function() {
 
-            #[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
+            #[derive(Clone, Copy, PartialEq, Eq, Debug)]
             struct A {
                 pub x: i32
             }
@@ -473,7 +480,7 @@ mod tests {
             let p = PointND::<_, 4>::from(&vec);
 
             for i in 0..vec.len() {
-                assert_eq!(p.get(i).unwrap(), vec[i]);
+                assert_eq!(p.get(i).unwrap(), &vec[i]);
             }
         }
 
@@ -482,34 +489,34 @@ mod tests {
             let vec = vec![0];
             let p = PointND::<_, 1>::from(&vec);
 
-            assert_eq!(p.x(), vec[0]);
+            assert_eq!(p.x(), &vec[0]);
         }
         #[test]
         fn convenience_getters_for_2d_points_work() {
             let vec = vec![0,1];
             let p = PointND::<_, 2>::from(&vec);
 
-            assert_eq!(p.x(), vec[0]);
-            assert_eq!(p.y(), vec[1]);
+            assert_eq!(p.x(), &vec[0]);
+            assert_eq!(p.y(), &vec[1]);
         }
         #[test]
         fn convenience_getters_for_3d_points_work() {
             let vec = vec![0,1,2];
             let p = PointND::<_, 3>::from(&vec);
 
-            assert_eq!(p.x(), vec[0]);
-            assert_eq!(p.y(), vec[1]);
-            assert_eq!(p.z(), vec[2]);
+            assert_eq!(p.x(), &vec[0]);
+            assert_eq!(p.y(), &vec[1]);
+            assert_eq!(p.z(), &vec[2]);
         }
         #[test]
         fn convenience_getters_for_4d_points_work() {
             let vec = vec![0,1,2,3];
             let p = PointND::<_, 4>::from(&vec);
 
-            assert_eq!(p.x(), vec[0]);
-            assert_eq!(p.y(), vec[1]);
-            assert_eq!(p.z(), vec[2]);
-            assert_eq!(p.w(), vec[3]);
+            assert_eq!(p.x(), &vec[0]);
+            assert_eq!(p.y(), &vec[1]);
+            assert_eq!(p.z(), &vec[2]);
+            assert_eq!(p.w(), &vec[3]);
         }
 
     }
