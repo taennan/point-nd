@@ -15,13 +15,17 @@ use std::ops::Index;
 
 /**
 
-The whole point of the crate (no pun intended)
+The whole _point_ of the crate (get it?)
+
+It really is just a small wrapper around an array with convenience methods for accessing values if it's dimensions are ```1..=4```
 
 # Examples
 
 ## Constructing a Point
 
 No matter how a PointND is constructed, the second generic arg must be filled with the number of dimensions it needs to have
+
+If a point of zero dimensions is constructed, it will panic
 
 ```
 use point_nd::PointND;
@@ -33,34 +37,63 @@ let p: PointND<i32, 3> = PointND::fill(5);
 // Creates a 2D point from values of a given vector or array
 let vec = vec![0, 1];
 let p: PointND<_, 2> = PointND::from(&vec);
+
+// ERROR:
+// let p: PointND<_, 0> = PointND::fill(9);
 ```
 
 ## Accessing Values
+
+It is recommended to use the convenience getters if the dimensions of the point are from ```1..=4```
+
+```
+use point_nd::PointND;
+
+// A 2D point
+let arr: [i32; 2] = [0,1];
+let p: PointND<_, 2> = PointND::from(&arr);
+
+// As the point has 2 dimensions, we can access it's values with the x() and y() methods
+let x: i32 = p.x();
+let y = p.y();
+
+// If the point had 3 dimensions, we could use the above and:
+// let z = p.z();
+
+// Or 4:
+// ...
+// let w = p.w();
+
+assert_eq!(y, arr[1]);
+```
+
+Otherwise indexing or the ```get()``` method can be used
+
 ```
 use point_nd::PointND;
 
 let arr: [i32; 2] = [0,1];
 let p: PointND<_, 2> = PointND::from(&arr);
 
-// Safely
-let x: Option<&i32> = p.get(0);
-// Unsafely
-let x: i32 = p[0];
+// Safely getting
+//  Returns None if index is out of bounds
+let x: Option<i32> = p.get(0);
+assert_eq!(x.unwrap(), arr[0]);
 
-assert_eq!(x, arr[0]);
-
-// Depending on the number of dimensions of the point...
-let x: i32 = p.x();
-let y: i32 = p.y();
-
+// Unsafely indexing
+//  If the index is out of bounds, this will panic
+let y: i32 = p[1];
 assert_eq!(y, arr[1]);
 ```
 
 ## Querying Size
 
+The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_)
+
 ```
 use point_nd::PointND;
 
+// A 2D point
 let p: PointND<i32, 2> = PointND::fill(10);
 assert_eq!(p.dims(), 2);
 ```
@@ -68,13 +101,20 @@ assert_eq!(p.dims(), 2);
  */
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PointND<T, const N: usize>
-    where T: Clone + Copy + Default {
+    where T: Clone + Copy {
     arr: [T; N],
 }
 
 impl<T, const N: usize>  PointND<T, N>
-    where T: Clone + Copy + Default {
+    where T: Clone + Copy {
 
+    /**
+     Returns a new ```PointND``` with values from the specified array or vector
+
+     ### Panics
+
+     If the length of the slice is zero
+     */
     pub fn from(slice: &[T]) -> Self {
         if slice.len() == 0 {
             panic!("Cannot construct Point with zero dimensions");
@@ -83,24 +123,45 @@ impl<T, const N: usize>  PointND<T, N>
         PointND { arr }
     }
 
+    /**
+     Returns a new ```PointND``` with all values set as specified
+
+     ### Panics
+
+     If the dimensions of the point being constructed is zero
+     */
     pub fn fill(value: T) -> Self {
         PointND::<T, N>::from(&[value; N])
     }
 
 
+    /**
+     Returns the number of dimensions of the point (a 2D point will return 2, a 3D point 3, _etc_)
+     */
     pub fn dims(&self) -> usize {
         self.arr.len()
     }
 
-    pub fn get(&self, i: usize) -> Option<&T> {
-        self.arr.get(i)
+    /**
+     Returns the ```Some(value)``` at the specified dimension or ```None``` if the dimension is out of bounds
+
+     The value of the first dimension is indexed at ```0``` for easier interoperability with standard indexing
+     */
+    pub fn get(&self, dim: usize) -> Option<T> {
+        self.arr.get(dim).copied()
     }
 
 
+    /**
+     Returns an array of all the values contained by the point
+     */
     pub fn as_arr(&self) -> [T; N] {
         self.arr
     }
 
+    /**
+     Returns a vector of all the values contained by the point
+     */
     pub fn as_vec(&self) -> Vec<T> {
         Vec::from(&self.arr[..])
     }
@@ -108,25 +169,29 @@ impl<T, const N: usize>  PointND<T, N>
 }
 
 // Convenience Getters
-impl<T: Clone + Copy + Default> PointND<T, 1> {
+/// Function for safely returning the first value contained by a 1D ```PointND```
+impl<T> PointND<T, 1> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
 
 }
-impl<T: Clone + Copy + Default> PointND<T, 2> {
+/// Functions for safely returning the first and second values contained by a 2D ```PointND```
+impl<T> PointND<T, 2> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
     pub fn y(&self) -> T { self.arr[1] }
 
 }
-impl<T: Clone + Copy + Default> PointND<T, 3> {
+/// Functions for safely returning the first, second and third values contained by a 3D ```PointND```
+impl<T> PointND<T, 3> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
     pub fn y(&self) -> T { self.arr[1] }
     pub fn z(&self) -> T { self.arr[2] }
 
 }
-impl<T: Clone + Copy + Default> PointND<T, 4> {
+/// Functions for safely returning the first, second, third and fourth values contained by a 4D ```PointND```
+impl<T> PointND<T, 4> where T: Clone + Copy {
 
     pub fn x(&self) -> T { self.arr[0] }
     pub fn y(&self) -> T { self.arr[1] }
@@ -136,7 +201,7 @@ impl<T: Clone + Copy + Default> PointND<T, 4> {
 }
 
 // Basic operators
-impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
@@ -145,16 +210,16 @@ impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone +
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
 
-        let mut ret_values= [T::default(); N];
-        for i in 0..ret_values.len() {
-            ret_values[i] = values_left[i] + values_right[i];
+        let mut ret_values = Vec::<T>::with_capacity(N);
+        for i in 0..N {
+            ret_values.push(values_left[i] + values_right[i]);
         }
 
         PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -163,16 +228,16 @@ impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone +
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
 
-        let mut ret_values= [T::default(); N];
-        for i in 0..ret_values.len() {
-            ret_values[i] = values_left[i] - values_right[i];
+        let mut ret_values = Vec::<T>::with_capacity(N);
+        for i in 0..N {
+            ret_values.push(values_left[i] - values_right[i]);
         }
 
         PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -181,16 +246,16 @@ impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone +
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
 
-        let mut ret_values= [T::default(); N];
-        for i in 0..ret_values.len() {
-            ret_values[i] = values_left[i] * values_right[i];
+        let mut ret_values = Vec::<T>::with_capacity(N);
+        for i in 0..N {
+            ret_values.push(values_left[i] * values_right[i]);
         }
 
         PointND::<T, N>::from(&ret_values)
     }
 
 }
-impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone + Copy + Default {
+impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
@@ -199,9 +264,9 @@ impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone +
         let values_left= self.as_arr();
         let values_right = rhs.as_arr();
 
-        let mut ret_values= [T::default(); N];
-        for i in 0..ret_values.len() {
-            ret_values[i] = values_left[i] / values_right[i];
+        let mut ret_values = Vec::<T>::with_capacity(N);
+        for i in 0..N {
+            ret_values.push(values_left[i] / values_right[i]);
         }
 
         PointND::<T, N>::from(&ret_values)
@@ -209,7 +274,7 @@ impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone +
 
 }
 
-impl<I, T, const N: usize> Index<I> for PointND<T, N> where T: Clone + Copy + Default, I: Sized + SliceIndex<[T], Output = T> {
+impl<I, T, const N: usize> Index<I> for PointND<T, N> where T: Clone + Copy, I: Sized + SliceIndex<[T], Output = T> {
     type Output = T;
     fn index(&self, index: I) -> &Self::Output {
         &self.arr[index]
@@ -300,7 +365,7 @@ mod tests {
             let p = PointND::<_, 4>::from(&vec);
 
             for i in 0..vec.len() {
-                assert_eq!(p.get(i).unwrap(), &vec[i]);
+                assert_eq!(p.get(i).unwrap(), vec[i]);
             }
         }
 
