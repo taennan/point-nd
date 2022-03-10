@@ -20,7 +20,7 @@ use std::{
 
 The whole _point_ of the crate (get it?)
 
-It really is just a small wrapper around an array with convenience methods for accessing values if it's dimensions are within ```1..=4```
+This is basically just a small wrapper around an array with convenience methods for accessing values if it's dimensions are within ```1..=4```
 
 # Examples
 
@@ -64,14 +64,14 @@ let p: PointND<_, 2> = PointND::from(&arr);
 let x: &i32 = p.x();
 let y = p.y();
 
+assert_eq!(*y, arr[1]);
+
 // If the point had 3 dimensions, we could use the above and:
 // let z = p.z();
 
 // Or 4:
 // ...
 // let w = p.w();
-
-assert_eq!(*y, arr[1]);
 ```
 
 Otherwise indexing or the ```get()``` method can be used
@@ -101,7 +101,6 @@ The number of dimensions can be retrieved using the ```dims()``` method (short f
 ```
 use point_nd::PointND;
 
-// A 2D point
 let p: PointND<i32, 2> = PointND::fill(10);
 assert_eq!(p.dims(), 2);
 ```
@@ -239,7 +238,7 @@ impl<T, const N: usize>  PointND<T, N>
 
      ```
      use point_nd::PointND;
-     
+
      // Adds each item in the PointND with their respective items in the array
      let p = PointND::<i32, 3>::from(&[0, 1, 2]);
      let p = p.apply_with([1, 2, 3], |a, b| a + b);
