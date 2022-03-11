@@ -8,16 +8,12 @@ See the ```PointND``` struct for basic usage
 
 use std::{
     ops::{
-        Add, Sub, Mul, Div,
         Index, IndexMut
     },
     slice::SliceIndex,
-    iter::Iterator,
     convert::TryInto,
 };
-use std::cmp::Ordering;
-use std::iter::{Chain, Cloned, Copied, Cycle, Enumerate, Filter, FilterMap, FlatMap, Flatten, Fuse, Inspect, Intersperse, IntersperseWith, Map, MapWhile, Peekable, Product, Rev, Scan, Skip, SkipWhile, StepBy, Sum, Take, TakeWhile, TrustedRandomAccessNoCoerce, Zip};
-use std::ops::{Residual, Try};
+// use std::ops::{Add, Sub, Mul, Div};
 
 
 /**
@@ -115,7 +111,6 @@ pub struct PointND<T, const N: usize>
     where T: Clone + Copy  {
     arr: [T; N],
 }
-
 
 impl<T, const N: usize>  PointND<T, N>
     where T: Clone + Copy  {
@@ -334,84 +329,10 @@ impl<T> PointND<T, 4> where T: Clone + Copy  {
 
 }
 
-// Basic math operators
-impl<T, const N: usize> Add for PointND<T, N> where T: Add<Output = T> + Clone + Copy  {
-
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
-
-        let values_left= self.values();
-        let values_right = rhs.values();
-
-        let mut ret_values = Vec::<T>::with_capacity(N);
-        for i in 0..N {
-            ret_values.push(values_left[i].clone() + values_right[i].clone());
-        }
-
-        PointND::<T, N>::from(&ret_values)
-    }
-
-}
-impl<T, const N: usize> Sub for PointND<T, N> where T: Sub<Output = T> + Clone + Copy  {
-
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
-
-        let values_left= self.values();
-        let values_right = rhs.values();
-
-        let mut ret_values = Vec::<T>::with_capacity(N);
-        for i in 0..N {
-            ret_values.push(values_left[i].clone() - values_right[i].clone());
-        }
-
-        PointND::<T, N>::from(&ret_values)
-    }
-
-}
-impl<T, const N: usize> Mul for PointND<T, N> where T: Mul<Output = T> + Clone + Copy  {
-
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
-
-        let values_left= self.values();
-        let values_right = rhs.values();
-
-        let mut ret_values = Vec::<T>::with_capacity(N);
-        for i in 0..N {
-            ret_values.push(values_left[i].clone() * values_right[i].clone());
-        }
-
-        PointND::<T, N>::from(&ret_values)
-    }
-
-}
-impl<T, const N: usize> Div for PointND<T, N> where T: Div<Output = T> + Clone + Copy  {
-
-    type Output = Self;
-    fn div(self, rhs: Self) -> Self::Output {
-        if &self.dims() != &rhs.dims() { panic!("Tried to add two PointND's of unequal length"); }
-
-        let values_left= self.values();
-        let values_right = rhs.values();
-
-        let mut ret_values = Vec::<T>::with_capacity(N);
-        for i in 0..N {
-            ret_values.push(values_left[i].clone() / values_right[i].clone());
-        }
-
-        PointND::<T, N>::from(&ret_values)
-    }
-
-}
-
 // Indexing operators
 impl<I, T, const N: usize> Index<I> for PointND<T, N> where T: Clone + Copy, I: Sized + SliceIndex<[T], Output = T> {
     type Output = T;
-    fn index(&self, index: I) -> & Self::Output {
+    fn index(&self, index: I) -> &Self::Output {
         &self.arr[index]
     }
 }
@@ -447,23 +368,12 @@ mod tests {
             impl A {
                 pub fn new(x: i32) -> Self { A{ x } }
             }
-            impl Add for A {
-                type Output = Self;
-                fn add(self, rhs: Self) -> Self::Output {
-                    A::new(self.x + rhs.x)
-                }
-            }
 
             let p = PointND::<A, 3>::fill(A::new(0));
-            let p = p + PointND::from(&[
-                A::new(1),
-                A::new(2),
-                A::new(3)
-            ]);
 
-            assert_ne!(p.x(), p.y());
-            assert_ne!(p.x(), p.z());
-            assert_ne!(p.y(), p.z());
+            assert_eq!(p.x(), p.y());
+            assert_eq!(p.x(), p.z());
+            assert_eq!(p.y(), p.z());
         }
 
         #[test]
@@ -579,67 +489,6 @@ mod tests {
 
             let new_val = 9999;
             p[1002] = new_val;
-        }
-
-        #[test]
-        fn can_add_two() {
-            let vec = vec![0,1,2,3];
-            let p1 = PointND::<_, 4>::from(&vec);
-            let p2 = PointND::from(&vec);
-
-            let p3 = p1 + p2;
-            for (a, b) in p3.as_arr().into_iter().zip(vec){
-                assert_eq!(a, b + b);
-            }
-        }
-
-        #[test]
-        fn can_subtract() {
-            let vec = vec![0,1,2,3];
-            let p1 = PointND::<_, 4>::from(&vec);
-            let p2 = PointND::from(&vec);
-
-            let p3 = p1 - p2;
-            for (a, b) in p3.as_arr().into_iter().zip(vec){
-                assert_eq!(a, b - b);
-            }
-        }
-
-        #[test]
-        fn can_multiply() {
-            let vec = vec![0,1,2,3];
-            let p1 = PointND::<_, 4>::from(&vec);
-            let p2 = PointND::from(&vec);
-
-            let p3 = p1 * p2;
-            for (a, b) in p3.as_arr().into_iter().zip(vec){
-                assert_eq!(a, b * b);
-            }
-        }
-
-        #[test]
-        fn can_divide() {
-            let vec = vec![1,2,3,4];
-            let p1 = PointND::<_, 4>::from(&vec);
-            let p2 = PointND::from(&vec);
-
-            let p3 = p1 / p2;
-            for (a, b) in p3.as_arr().into_iter().zip(vec){
-                assert_eq!(a, b / b);
-            }
-        }
-
-        #[test]
-        #[should_panic]
-        fn cannot_divide_if_one_item_is_zero() {
-            let vec = vec![0, 1,2,3,4];
-            let p1 = PointND::<_, 5>::from(&vec);
-            let p2 = PointND::from(&vec);
-
-            let p3 = p1 / p2;
-            for (a, b) in p3.as_arr().into_iter().zip(vec){
-                assert_eq!(a, b / b);
-            }
         }
 
         #[test]
