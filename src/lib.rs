@@ -144,6 +144,9 @@ impl<T, const N: usize> PointND<T, N>
 
 
     /**
+     If the index specified is within the dimensions of self, sets the value at ```i``` to the ```new_val``` and returns ```Ok(())```
+
+    Otherwise, if ```i``` is out of range, does nothing and returns ```Err(())```
      */
     pub fn set(&mut self, i: usize, new_val: T) -> Result<(), ()> {
         if self.dims() < i { return Err(()) }
