@@ -12,8 +12,12 @@ use std::{
         Index, IndexMut
     },
     slice::SliceIndex,
+    iter::Iterator,
     convert::TryInto,
 };
+use std::cmp::Ordering;
+use std::iter::{Chain, Cloned, Copied, Cycle, Enumerate, Filter, FilterMap, FlatMap, Flatten, Fuse, Inspect, Intersperse, IntersperseWith, Map, MapWhile, Peekable, Product, Rev, Scan, Skip, SkipWhile, StepBy, Sum, Take, TakeWhile, TrustedRandomAccessNoCoerce, Zip};
+use std::ops::{Residual, Try};
 
 
 /**
@@ -112,10 +116,11 @@ pub struct PointND<T, const N: usize>
     arr: [T; N],
 }
 
-// Constructors
+
 impl<T, const N: usize>  PointND<T, N>
     where T: Clone + Copy  {
 
+    // Constructors
     /**
      Returns a new ```PointND``` with values from the specified array or vector
 
@@ -142,13 +147,8 @@ impl<T, const N: usize>  PointND<T, N>
         PointND::<T, N>::from(&[value; N])
     }
 
-}
 
-// Standard Getters
-impl<T, const N: usize>  PointND<T, N>
-    where T: Clone + Copy  {
-
-
+    // Standard Getters
     /**
      Returns the number of dimensions of the point (a 2D point will return 2, a 3D point 3, _etc_)
      */
@@ -165,12 +165,31 @@ impl<T, const N: usize>  PointND<T, N>
         self.arr.get(dim)
     }
 
-}
 
-// Modifiers
-impl<T, const N: usize>  PointND<T, N>
-    where T: Clone + Copy  {
+    // Wholesale getters
+    /**
+     Returns a pointer to the array values stored by self
+     */
+    pub fn values(&self) -> &[T; N] {
+        &self.arr
+    }
 
+    /**
+     Returns an array of all the values contained by the point
+     */
+    pub fn as_arr(&self) -> [T; N] {
+        self.arr.clone()
+    }
+
+    /**
+     Returns a vector of all the values contained by the point
+     */
+    pub fn as_vec(&self) -> Vec<T> {
+        Vec::from(&self.arr[..])
+    }
+
+
+    // Modifiers
     /**
      Returns a new ```PointND``` from the values contained by self after applying the modifier function to them
 
@@ -265,33 +284,6 @@ impl<T, const N: usize>  PointND<T, N>
         where F: Fn(T, T) -> T {
 
         self.apply_vals(other.as_arr(), modifier)
-    }
-
-}
-
-// Wholesale Getters
-impl<T, const N: usize>  PointND<T, N>
-    where T: Clone + Copy  {
-
-    /**
-     Returns a pointer to the array values stored by self
-     */
-    pub fn values(&self) -> &[T; N] {
-        &self.arr
-    }
-
-    /**
-     Returns an array of all the values contained by the point
-     */
-    pub fn as_arr(&self) -> [T; N] {
-        self.arr.clone()
-    }
-
-    /**
-     Returns a vector of all the values contained by the point
-     */
-    pub fn as_vec(&self) -> Vec<T> {
-        Vec::from(&self.arr[..])
     }
 
 }
@@ -428,7 +420,6 @@ impl<I, T, const N: usize> IndexMut<I> for PointND<T, N> where T: Clone + Copy, 
         &mut self.arr[index]
     }
 }
-
 
 #[cfg(test)]
 mod tests {
