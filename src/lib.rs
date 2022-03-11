@@ -1,11 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PointND<T, const N: usize>([T; N])
-    where T: Clone + Copy;
+    where T: Clone + Copy + Default;
 
 impl<T, const N: usize> PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone + Copy + Default {
 
     pub fn from(slice: &[T]) -> Self {
         if slice.len() == 0 {
@@ -19,46 +19,47 @@ impl<T, const N: usize> PointND<T, N>
         PointND::<T, N>::from(&[value; N])
     }
 
+
     pub fn dims(&self) -> usize {
         self.len()
     }
 
+
     pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
 
-        let mut vec = Vec::<T>::with_capacity(N);
-        for item in self.into_iter() {
-            let fn_result = modifier(item)?;
-            vec.push(fn_result);
+        let mut arr = [T::default(); N];
+        for i in 0..N {
+            arr[i] = modifier(self[i])?;
         }
 
-        Ok( PointND::<T, N>::from(&vec) )
+        Ok( PointND::<T, N>::from(&arr) )
     }
 
     pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
 
-        let mut vec = Vec::<T>::with_capacity(N);
-        for (i, item) in self.into_iter().enumerate() {
+        let mut arr = [T::default(); N];
+        for i in 0..N {
             if dims.contains(&i) {
-                vec.push(modifier(item)?);
+                arr[i] = modifier(self[i])?;
             } else {
-                vec.push(item);
+                arr[i] = self[i];
             }
         }
 
-        Ok( PointND::<T, N>::from(&vec) )
+        Ok( PointND::<T, N>::from(&arr) )
     }
 
     pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
 
-        let mut vec = Vec::<T>::with_capacity(N);
-        for (a, b) in self.into_iter().zip(values) {
-            vec.push(modifier(a, b)?);
+        let mut arr = [T::default(); N];
+        for i in 0..N {
+            arr[i] = modifier(self[i], values[i])?;
         }
 
-        Ok( PointND::<T, N>::from(&vec) )
+        Ok( PointND::<T, N>::from(&arr) )
     }
 
     pub fn apply_with<F>(self, other: PointND<T, N>, modifier: F) -> Result<Self, ()>
@@ -79,7 +80,7 @@ impl<T, const N: usize> PointND<T, N>
 }
 
 impl<T, const N: usize> Deref for PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone + Copy + Default {
 
     type Target = [T; N];
     fn deref(&self) -> &Self::Target {
@@ -88,7 +89,7 @@ impl<T, const N: usize> Deref for PointND<T, N>
 
 }
 impl<T, const N: usize> DerefMut for PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone + Copy + Default {
 
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
@@ -98,7 +99,7 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 
 
 impl<T> PointND<T, 1>
-    where T: Clone + Copy  {
+    where T: Clone + Copy + Default  {
 
     pub fn x(&self) -> &T { &self[0] }
 
@@ -106,7 +107,7 @@ impl<T> PointND<T, 1>
 
 }
 impl<T> PointND<T, 2>
-    where T: Clone + Copy  {
+    where T: Clone + Copy + Default  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -116,7 +117,7 @@ impl<T> PointND<T, 2>
 
 }
 impl<T> PointND<T, 3>
-    where T: Clone + Copy  {
+    where T: Clone + Copy + Default  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -128,7 +129,7 @@ impl<T> PointND<T, 3>
 
 }
 impl<T> PointND<T, 4>
-    where T: Clone + Copy  {
+    where T: Clone + Copy + Default  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -149,10 +150,6 @@ mod test {
     use crate::*;
 
     #[test]
-    fn blank() {
-    }
-
-    #[test]
     fn can_iter() {
 
         let arr = [0, 1, 2, 3];
@@ -171,6 +168,21 @@ mod test {
             assert_eq!(i, 10u8);
         }
 
+    }
+
+    #[test]
+    fn can_apply() {
+
+        let arr = [0, 1, 2, 3];
+
+        let p = PointND::<u8, 4>
+            ::from(&arr)
+            .apply(|a| Ok( a * 2 ))
+            .unwrap();
+
+        for (a, b) in arr.iter().zip(p.iter()) {
+            assert_eq!(*a * 2, *b);
+        }
     }
 
 }
