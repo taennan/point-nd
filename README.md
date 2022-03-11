@@ -3,6 +3,10 @@
 
 A simple and flexible data structure for modelling points of **any** dimensions on an axis
 
+## Disclaimer
+
+This crate is still in it's very early stages. Breaking changes will be made often and without notice. However, as the author as in need of its functionality, it should stabilize soon.
+
 ## Basic Usage
 
 ### Constructing a Point
@@ -12,8 +16,6 @@ No matter how a PointND is constructed, the second generic arg must be filled wi
 If a point of zero dimensions is constructed, it will panic
 
 ```rust
-use point_nd::PointND;
-
 // Creates a 2D point from values of a given vector or array
 let vec: Vec<i32> = vec![0, 1];
 let p: PointND<_, 2> = PointND::from(&vec);
@@ -35,8 +37,6 @@ let p = PointND::<_, 2>::from(&vec);
 It is recommended to use the convenience getters if the dimensions of the point are from ```1..=4```
 
 ```rust
-use point_nd::PointND;
-
 // A 2D point
 let arr: [i32; 2] = [0,1];
 let p: PointND<_, 2> = PointND::from(&arr);
@@ -58,8 +58,6 @@ assert_eq!(*y, arr[1]);
 Otherwise indexing or the ```get()``` method can be used
 
 ```rust
-use point_nd::PointND;
-
 let arr: [i32; 2] = [0,1];
 let p: PointND<_, 2> = PointND::from(&arr);
 
@@ -80,10 +78,26 @@ assert_eq!(y, arr[1]);
 The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_)
 
 ```rust
-use point_nd::PointND;
-
 let p: PointND<i32, 2> = PointND::fill(10);
 assert_eq!(p.dims(), 2);
+```
+
+### Iterating
+
+The ```PointND``` struct does not implement iterating directly. The internal values must be accessed as an array in order to loop over them
+
+```rust
+let arr: [i32; 4] = [0,1,2,3];
+let p: PointND<_, 4> = PointND::from(&arr);
+
+// Use either one of:
+let values:  [i32; 4] = p.as_arr();
+let values: &[i32; 4] = p.values();
+let values:  Vec<i32> = p.as_vec();
+
+for (i, item) in values.into_iter().enumerate() {
+    assert_eq!(item, arr[i]);
+}
 ```
 
 ## Contributing
