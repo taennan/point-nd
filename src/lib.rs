@@ -13,8 +13,6 @@ use std::{
     slice::SliceIndex,
     convert::TryInto,
 };
-// use std::ops::{Add, Sub, Mul, Div};
-
 
 /**
 
@@ -31,8 +29,7 @@ No matter how a PointND is constructed, the second generic arg must be filled wi
 If a point of zero dimensions is constructed, it will panic
 
 ```
-use point_nd::PointND;
-
+# use point_nd::PointND;
 // Creates a 2D point from values of a given vector or array
 let vec: Vec<i32> = vec![0, 1];
 let p: PointND<_, 2> = PointND::from(&vec);
@@ -54,8 +51,7 @@ let p = PointND::<_, 2>::from(&vec);
 It is recommended to use the convenience getters if the dimensions of the point are from ```1..=4```
 
 ```
-use point_nd::PointND;
-
+# use point_nd::PointND;
 // A 2D point
 let arr: [i32; 2] = [0,1];
 let p: PointND<_, 2> = PointND::from(&arr);
@@ -77,8 +73,7 @@ assert_eq!(*y, arr[1]);
 Otherwise indexing or the ```get()``` method can be used
 
 ```
-use point_nd::PointND;
-
+# use point_nd::PointND;
 let arr: [i32; 2] = [0,1];
 let p: PointND<_, 2> = PointND::from(&arr);
 
@@ -99,12 +94,31 @@ assert_eq!(y, arr[1]);
 The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_)
 
 ```
-use point_nd::PointND;
-
+# use point_nd::PointND;
 let p: PointND<i32, 2> = PointND::fill(10);
 assert_eq!(p.dims(), 2);
 ```
 
+## Iterating
+
+The ```PointND``` struct does not implement iterating directly. The internal values must be accessed as an array in order to loop over them
+
+```
+# use point_nd::PointND;
+let arr: [i32; 4] = [0,1,2,3];
+let p: PointND<_, 4> = PointND::from(&arr);
+
+// Use either one of:
+let values:  [i32; 4] = p.as_arr();
+# for _ in values.iter() {}
+let values: &[i32; 4] = p.values();
+# for _ in values.iter() {}
+let values:  Vec<i32> = p.as_vec();
+
+for (i, item) in values.into_iter().enumerate() {
+    assert_eq!(item, arr[i]);
+}
+```
  */
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PointND<T, const N: usize>
@@ -191,8 +205,7 @@ impl<T, const N: usize>  PointND<T, N>
      ### Examples
 
      ```
-     use point_nd::PointND;
-
+     # use point_nd::PointND;
      // Multiplies each item by 10
      let p = PointND::<i32, 3>::from(&[0, 1, 2]);
      let p = p.apply(|item| item * 10);
@@ -222,8 +235,7 @@ impl<T, const N: usize>  PointND<T, N>
     ### Examples
 
      ```
-     use point_nd::PointND;
-
+     # use point_nd::PointND;
      // Multiplies items at indexes 1 and 2 by 2
      let p = PointND::<i32, 4>::from(&[0, 1, 2, 3]);
      let p = p.apply_dims(&[1, 2], |item| item * 2);
@@ -252,8 +264,7 @@ impl<T, const N: usize>  PointND<T, N>
      ### Examples
 
      ```
-     use point_nd::PointND;
-
+     # use point_nd::PointND;
      // Adds each item in the PointND with their respective items in the array
      let p = PointND::<i32, 3>::from(&[0, 1, 2]);
      let p = p.apply_vals([1, 2, 3], |a, b| a + b);
@@ -273,7 +284,7 @@ impl<T, const N: usize>  PointND<T, N>
     }
 
     /**
-
+     Returns a new ```PointND``` from the values contained by self and those of the point specified after applying the modifier to both
      */
     pub fn apply_with<F>(self, other: PointND<T, N>, modifier: F) -> Self
         where F: Fn(T, T) -> T {
