@@ -153,6 +153,7 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
+    // Did not call apply_dims() inside this to avoid the dimension checks it does
     pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
 
@@ -197,10 +198,12 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
+    /// Consumes self, returning the contained array
     pub fn into_arr(self) -> [T; N] {
-        self.0.clone()
+        self.0
     }
 
+    /// Consumes self, returning the contained array as a vector
     pub fn into_vec(self) -> Vec<T> {
         Vec::from(&self[..])
     }
@@ -227,6 +230,9 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 }
 
 
+// Convenience Getters and Setters
+/// ### 1D
+/// Function for safely getting and setting the first value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
     where T: Clone + Copy + Default  {
 
@@ -235,6 +241,8 @@ impl<T> PointND<T, 1>
     pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
 
 }
+/// ### 2D
+/// Functions for safely getting and setting the first and second values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
     where T: Clone + Copy + Default  {
 
@@ -245,6 +253,8 @@ impl<T> PointND<T, 2>
     pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
 
 }
+/// ### 3D
+/// Functions for safely getting and setting the first, second and third values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
     where T: Clone + Copy + Default  {
 
@@ -257,6 +267,8 @@ impl<T> PointND<T, 3>
     pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
 
 }
+/// ### 4D
+/// Functions for safely getting and setting the first, second, third and fourth values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
     where T: Clone + Copy + Default  {
 
