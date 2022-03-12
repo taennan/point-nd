@@ -18,100 +18,168 @@ use std::{
 
 /**
 
-The whole _point_ of the crate (get it?)
+The whole _point_ of the crate
 
 This is really just a wrapper around an array with convenience methods for accessing values if it's dimensions are within ```1..=4```
 
-# Basic Usage
+Therefore, all methods implemented for arrays are available with this
 
-## Making a Point
-
-No matter how a PointND is constructed, the second generic arg must be filled with the number of dimensions it needs to have (i.e - the length of the array to push on the stack)
-
-If a point of zero dimensions is constructed, it will panic
+# Making a Point
 
 ```
-use point_nd::PointND;
-
-// Creates a 2D point from values of a given vector or array
-let vec: Vec<i32> = vec![0, 1];
-let p: PointND<_, 2> = PointND::from(&vec);
-
-// Creates a 3D point with all values set to 5
-//  When using this function, complete type annotation is necessary
-let p: PointND<i32, 3> = PointND::fill(5);
-
-// ERROR: Can't create a point with zero dimensions
-// let p: PointND<_, 0> = PointND::fill(9);
-
-// If you don't like writing PointND twice, use this syntax instead
-//  Note: The second generic must still be specified
-let p = PointND::<_, 2>::from(&vec);
-```
-
-## Accessing Values
-
-It is recommended to use the convenience getters if the dimensions of the point are from ```1..=4```
-
-```
-use point_nd::PointND;
-
-// A 2D point
+# use point_nd::PointND;
+// Creating a 2D point from a given array
 let arr: [i32; 2] = [0,1];
-let p: PointND<_, 2> = PointND::from(&arr);
+let p: PointND<_, 2> = PointND::new(arr);
 
-// As the point has 2 dimensions, we can access it's values with the x() and y() methods
+// Creating a 3D point from values of a given slice
+let vec: Vec<i32> = vec![0, 1, 2];
+let p: PointND<_, 3> = PointND::from(&vec);
+
+// Creating a 4D point with all values set to 5
+let p: PointND<i32, 4> = PointND::fill(5);
+
+// The second generic arg is a usize constant and for the ::fill()
+//  and ::from() functions, specifying it is usually necessary
+// If you don't like writing PointND twice for type annotation, use this instead:
+let p = PointND::<_, 4>::fill(5);
+
+// Trying to create a PointND with zero dimensions using the above will panic at runtime
+//  ERROR: Can't create a point with zero dimensions
+//  let p: PointND<_, 0> = PointND::fill(9);
+```
+
+# Getting and Setting Values
+
+If the dimensions of the point are within ```1..=4```, it is recommended to use the convenience getters and setters
+
+```
+# use point_nd::PointND;
+let arr = [0,1];
+let p: PointND<_, 2> = PointND::new(arr);
+
+// As the point has 2 dimensions, we can access
+//  it's values with the x() and y() methods
 let x: &i32 = p.x();
+assert_eq!(x, &arr[0]);
 let y = p.y();
-
 assert_eq!(*y, arr[1]);
 
 // If the point had 3 dimensions, we could use the above and:
-// let z = p.z();
+//  let z = p.z();
+// Or with 4 dimensions, the above and:
+//  let w = p.w();
 
-// Or 4:
-// ...
-// let w = p.w();
+// Setting values is just as simple
+let mut p = PointND::new(arr);
+p.set_x(101);
+assert_eq!(*p.x(), 101);
+
+// As with the getters, there are respective methods for setting the
+//  values at y, z and w depending on the dimensions of the point
 ```
 
-Otherwise indexing or the ```get()``` method can be used
+Alternatively, since ```PointND``` implements ```Deref```, all methods of getting and setting array elements can work as well
+
+These are the only methods which can be used for ```PointND```'s with dimensions *not* within ```1..=4```
 
 ```
-use point_nd::PointND;
-
-let arr: [i32; 2] = [0,1];
-let p: PointND<_, 2> = PointND::from(&arr);
-
-// Safely getting
-//  Returns None if index is out of bounds
+# use point_nd::PointND;
+# let arr: [i32; 2] = [101,1];
+# let mut p: PointND<_, 2> = PointND::new(arr);
+// Exactly like safely accessing an array
 let x: Option<&i32> = p.get(0);
-assert_eq!(*x.unwrap(), arr[0]);
+assert_eq!(*x.unwrap(), 101);
 
-// Unsafely indexing
-//  If the index is out of bounds, this will panic
+// Exactly like indexing an array
 //  Note that unlike other accessing methods, this will return a copy of the value
 let y: i32 = p[1];
 assert_eq!(y, arr[1]);
+
+// Setting via indexing
+p[1] = 345;
+assert_eq!(p[1], 345);
 ```
 
-## Querying Size
+# Querying Size
 
 The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_)
 
 ```
-use point_nd::PointND;
-
-let p: PointND<i32, 2> = PointND::fill(10);
+# use point_nd::PointND;
+let p: PointND<i32, 2> = PointND::new([0,1]);
 assert_eq!(p.dims(), 2);
+// Alternatively, as PointND implements Deref:
+assert_eq!(p.len(), 2)
 ```
 
 # Transforming Points
 
-## Appliers
+### Appliers
 
- The ```apply```, ```apply_vals```, ```apply_dims``` and ```apply_point``` methods all consume self and return a new point after applying a function to all contained values
+The ```apply```, ```apply_vals```, ```apply_dims``` and ```apply_point``` (henceforth referred to as _appliers_)
+methods all consume self and return a new point after applying a function to all contained values
 
- Multiple appliers can be chained together to make complex transformations to a ```PointND```
+Multiple appliers can be chained together to make complex transformations to a ```PointND```
+
+This is probably best explained with an example:
+
+```
+# use point_nd::PointND;
+# fn apply_example() -> Result<(), ()> {
+// A trivial transformation more easily done via other methods...
+//  but it gets the point across
+let p = PointND
+    ::new([0,1,2])                      // Creates a new PointND
+    .apply(|item| Ok( item + 2 ))?      // Adds 2 to each item
+    .apply(|item| Ok( item * 3 ))?;     // Multiplies each item by 3
+assert_eq!(p.into_arr(), [6, 9, 12]);
+# Ok(())
+# }
+```
+
+### Creating a Function to Pass to Appliers
+
+The function or closure passed to the applier methods (henceforth referred to as _modifiers_)
+accept either one or two args of type ```T``` (where ```T``` is the type of the items contained
+by the point) depending on whether one or two sets of values are being modified.
+
+Modifiers must all return a ```Result<T, ()>``` to allow graceful error handling by the applier instead of just panicking.
+
+If an ```Err``` is returned by the modifier when called on any item, the applier returns an ```Err(())```
+
+If all goes well, the applier returns an ```Ok``` with the new ```PointND``` as it's value
+
+Hopefully the above wasn't confusing, but here's an example just in case:
+
+```
+# use point_nd::PointND;
+# fn modifier_creation_example() -> Result<(), ()> {
+// Dividing by zero causes a runtime error, so we return an Err if the second arg is zero
+let divide_items = |a: f32, b: f32| -> Result<f32, ()> {
+    if b == 0.0 {
+        Err(())
+    } else {
+        Ok( a / b )
+    }
+};
+
+let p1 = PointND::new([-1.2, 2.0, -3.0, 4.5]);
+let p2 = PointND::new([2.3,  9.0, -3.0, 1.0]);
+let zero_point = PointND::fill(0.0);
+
+// Divides each item in p1 with each in p2
+let result = p1.clone().apply_point(p2, divide_items);
+// No zeros in p2, so everything's Ok
+assert!(result.is_ok());
+
+// Divides each item in p1 with each in zero_point
+let result = p1.apply_point(zero_point, divide_items);
+// Error is thrown by divide_items, causing apply_point() to throw error
+assert!(result.is_err());
+# Ok(())
+# }
+```
  */
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PointND<T, const N: usize>([T; N])
@@ -183,6 +251,9 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
+    /**
+
+     */
     // Did not call apply_dims() inside this to avoid the dimension checks it does
     pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
@@ -195,6 +266,8 @@ impl<T, const N: usize> PointND<T, N>
         Ok( PointND::<T, N>::from(&arr) )
     }
 
+    /**
+     */
     pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
 
@@ -210,6 +283,8 @@ impl<T, const N: usize> PointND<T, N>
         Ok( PointND::<T, N>::from(&arr) )
     }
 
+    /**
+     */
     pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
 
@@ -221,6 +296,8 @@ impl<T, const N: usize> PointND<T, N>
         Ok( PointND::<T, N>::from(&arr) )
     }
 
+    /**
+     */
     pub fn apply_point<F>(self, other: PointND<T, N>, modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
 
