@@ -597,6 +597,8 @@ macro_rules! dim {
 #[macro_export]
 macro_rules! dims {
     ( $( $d:ident ), * ) => { [ $( dim!($d), )* ] };
+
+    ( $a:ident..=$b:ident ) => { dim!($a)..=dim!($b) }
 }
 
 
@@ -986,7 +988,12 @@ mod tests {
         #[test]
         fn dims_works() {
             assert_eq!(dims![x,y,z,w], [0,1,2,3]);
-            assert_eq!(dims![x,z,y],  [0,2,1]);
+            assert_eq!(dims![x,z,y],   [0,2,1]);
+        }
+
+        #[test]
+        fn dims_range_works() {
+            assert_eq!(dims![x..=z], (0..=2));
         }
 
     }
