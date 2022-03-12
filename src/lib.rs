@@ -41,12 +41,13 @@ let p: PointND<i32, 4> = PointND::fill(5);
 
 // The second generic arg is a usize constant and for the ::fill()
 //  and ::from() functions, specifying it is usually necessary
-// If you don't like writing PointND twice for type annotation, use this instead:
+// If you don't like writing PointND twice for type annotation,
+//  use FQS (fully qualified syntax) instead:
 let p = PointND::<_, 4>::fill(5);
 
 // Trying to create a PointND with zero dimensions using the above will panic at runtime
 //  ERROR: Can't create a point with zero dimensions
-//  let p: PointND<_, 0> = PointND::fill(9);
+//  let p: PointND<_, 0> = PointND::new([]);
 ```
 
 # Getting and Setting Values
@@ -92,7 +93,7 @@ let x: Option<&i32> = p.get(0);
 assert_eq!(*x.unwrap(), 101);
 
 // Exactly like indexing an array
-//  Note that unlike other accessing methods, this will return a copy of the value
+//  Note: Unlike other accessing methods, this returns a copy of the value
 let y: i32 = p[1];
 assert_eq!(y, arr[1]);
 
@@ -191,7 +192,7 @@ impl<T, const N: usize> PointND<T, N>
     /**
      Returns a new ```PointND``` with values from the specified array
 
-     This is the only constructor that does not need type annotation
+     This is the only constructor that does not need ever type annotation
 
      ### Panics
 
@@ -253,6 +254,17 @@ impl<T, const N: usize> PointND<T, N>
 
     /**
      Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
+     ```
+     # use point_nd::PointND;
+     # fn apply_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2])                    // Creates a new PointND
+         .apply(|item| Ok( item + 2 ))?    // Adds 2 to each item
+         .apply(|item| Ok( item * 3 ))?;   // Multiplies each item by 3
+     assert_eq!(p.into_arr(), [6, 9, 12]);
+     # Ok(())
+     # }
+     ```
      */
     // Did not call apply_dims() inside this to avoid the dimension checks it does
     pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
@@ -270,6 +282,17 @@ impl<T, const N: usize> PointND<T, N>
      Consumes ```self``` and calls the ```modifier``` the items at specified ```dims``` contained by ```self``` to create a new ```PointND```
 
      Any items at dimensions not specified will be passed to the new point as is
+     ```
+     # use point_nd::PointND;
+     # fn apply_dims_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2,3])                              // Creates a new PointND
+         .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
+         .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
+     assert_eq!(p.into_arr(), [10, 2, 20, 6]);
+     # Ok(())
+     # }
+     ```
      */
     pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
@@ -287,7 +310,23 @@ impl<T, const N: usize> PointND<T, N>
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and ```values``` to create a new ```PointND```
+     Consumes ```self``` and calls the ```modifier``` on each item contained
+     by ```self``` and ```values``` to create a new ```PointND```
+
+     When creating a modifier function to be used by this method, keep in mind that the items in
+     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**
+     ```
+     # use point_nd::PointND;
+     # fn apply_vals_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2])                             // Creates a new PointND
+         .apply_vals([1,3,5], |a, b| Ok( a + b ))?  // Adds items in point to items in array
+         .apply_vals([2,4,6], |a, b| Ok( a * b ))?; // Multiplies items in point
+                                                    //  to items in array
+     assert_eq!(p.into_arr(), [2, 16, 42]);
+     # Ok(())
+     # }
+     ```
      */
     pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
@@ -302,6 +341,23 @@ impl<T, const N: usize> PointND<T, N>
 
     /**
      Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
+
+     When creating a modifier function to be used by this method, keep in mind that the items in
+     ```self``` are passed to it through the **first arg**, and the items in ```other``` through the **second**
+     ```
+     # use point_nd::PointND;
+     # fn apply_point_example() -> Result<(), ()> {
+     let p1 = PointND::new([0,9,3,1]);
+     let p2 = PointND::fill(10);
+     let p3 = PointND
+         ::new([1,2,3,4])                         // Creates a new PointND
+         .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
+         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the new point returned
+                                                  //  with the items in p2
+     assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
+     # Ok(())
+     # }
+     ```
      */
     pub fn apply_point<F>(self, other: Self, modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
@@ -310,12 +366,12 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
-    /// Consumes self, returning the contained array
+    /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
         self.0
     }
 
-    /// Consumes self, returning the contained array as a vector
+    /// Consumes ```self```, returning the contained array as a vector
     pub fn into_vec(self) -> Vec<T> {
         Vec::from(&self[..])
     }
