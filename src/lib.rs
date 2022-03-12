@@ -10,6 +10,7 @@ use std::{
     ops::{
         Deref, DerefMut,
         Add, Sub, Mul, Div,
+        AddAssign, SubAssign, MulAssign, DivAssign,
         Neg
     }
 };
@@ -261,6 +262,7 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 
 
 // Math operators
+//  Negation
 impl<T, const N: usize> Neg for PointND<T, N>
     where T: Clone + Copy + Default + Neg<Output = T> {
 
@@ -276,6 +278,7 @@ impl<T, const N: usize> Neg for PointND<T, N>
 
 }
 
+//  Arithmetic
 impl<T, const N: usize> Add for PointND<T, N>
     where T: Add<Output = T> + Clone + Copy + Default  {
 
@@ -318,6 +321,13 @@ impl<T, const N: usize> Mul for PointND<T, N>
     }
 
 }
+/**
+ ### Warning
+
+ Use division with caution! Undefined behavior may occur!
+
+ For example, dividing by a ```PointND``` that contains a zero will cause a panic
+ */
 impl<T, const N: usize> Div for PointND<T, N>
     where T: Div<Output = T> + Clone + Copy + Default {
 
@@ -333,10 +343,59 @@ impl<T, const N: usize> Div for PointND<T, N>
 
 }
 
+// Arithmetic Assign
+impl<T, const N: usize> AddAssign for PointND<T, N>
+    where T: AddAssign + Clone + Copy + Default {
+
+    fn add_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self[i] += rhs[i];
+        }
+    }
+
+}
+impl<T, const N: usize> SubAssign for PointND<T, N>
+    where T: SubAssign + Clone + Copy + Default {
+
+    fn sub_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self[i] -= rhs[i];
+        }
+    }
+
+}
+impl<T, const N: usize> MulAssign for PointND<T, N>
+    where T: MulAssign + Clone + Copy + Default {
+
+    fn mul_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self[i] *= rhs[i];
+        }
+    }
+
+}
+/**
+ ### Warning
+
+ Use division with caution! Undefined behavior may occur!
+
+ For example, dividing by a ```PointND``` that contains a zero will cause a panic
+ */
+impl<T, const N: usize> DivAssign for PointND<T, N>
+    where T: DivAssign + Clone + Copy + Default {
+
+    fn div_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self[i] /= rhs[i];
+        }
+    }
+
+}
+
 
 // Convenience Getters and Setters
 /// ### 1D
-/// Functions for safely getting and setting the first value contained by a 1D ```PointND```
+/// Functions for safely getting and setting the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
     where T: Clone + Copy + Default  {
 
@@ -346,7 +405,7 @@ impl<T> PointND<T, 1>
 
 }
 /// ### 2D
-/// Functions for safely getting and setting the first and second values contained by a 2D ```PointND```
+/// Functions for safely getting and setting the values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
     where T: Clone + Copy + Default  {
 
@@ -358,7 +417,7 @@ impl<T> PointND<T, 2>
 
 }
 /// ### 3D
-/// Functions for safely getting and setting the first, second and third values contained by a 3D ```PointND```
+/// Functions for safely getting and setting the values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
     where T: Clone + Copy + Default  {
 
@@ -372,7 +431,7 @@ impl<T> PointND<T, 3>
 
 }
 /// ### 4D
-/// Functions for safely getting and setting the first, second, third and fourth values contained by a 4D ```PointND```
+/// Functions for safely getting and setting the values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
     where T: Clone + Copy + Default  {
 
@@ -527,7 +586,6 @@ mod tests {
     mod operators {
         use super::*;
 
-
         #[test]
         fn can_add() {
             let arr = [0, -1, 2, -3];
@@ -537,6 +595,16 @@ mod tests {
             let p3 = p1 + p2;
             for (a, b) in p3.into_arr().into_iter().zip(arr){
                 assert_eq!(a, b + b);
+            }
+        }
+        #[test]
+        fn can_add_assign() {
+            let arr = [0, -1, 2, -3, 4, -5];
+            let mut p1 = PointND::new(arr);
+
+            p1 += PointND::new(arr);
+            for i in 0..p1.dims() {
+                assert_eq!(p1[i], arr[i] + arr[i]);
             }
         }
 
@@ -551,6 +619,16 @@ mod tests {
                 assert_eq!(a, b - b);
             }
         }
+        #[test]
+        fn can_sub_assign() {
+            let arr = [0, -1, 2, -3, 4, -5];
+            let mut p1 = PointND::new(arr);
+
+            p1 -= PointND::new(arr);
+            for i in 0..p1.dims() {
+                assert_eq!(p1[i], arr[i] - arr[i]);
+            }
+        }
 
         #[test]
         fn can_mul() {
@@ -561,6 +639,16 @@ mod tests {
             let p3 = p1 * p2;
             for (a, b) in p3.into_arr().into_iter().zip(arr){
                 assert_eq!(a, b * b);
+            }
+        }
+        #[test]
+        fn can_mul_assign() {
+            let arr = [0, -1, 2, -3, 4, -5];
+            let mut p1 = PointND::new(arr);
+
+            p1 *= PointND::new(arr);
+            for i in 0..p1.dims() {
+                assert_eq!(p1[i], arr[i] * arr[i]);
             }
         }
 
@@ -575,6 +663,16 @@ mod tests {
                 assert_eq!(a, b / b);
             }
         }
+        #[test]
+        fn can_div_assign() {
+            let arr = [-1, 2, -3, 4, -5];
+            let mut p1 = PointND::new(arr);
+
+            p1 /= PointND::new(arr);
+            for i in 0..p1.dims() {
+                assert_eq!(p1[i], arr[i] / arr[i]);
+            }
+        }
 
         #[test]
         #[should_panic]
@@ -586,6 +684,17 @@ mod tests {
             let p3 = p1 / p2;
             for (a, b) in p3.into_arr().into_iter().zip(arr){
                 assert_eq!(a, b / b);
+            }
+        }
+        #[test]
+        #[should_panic]
+        fn cannot_div_assign_if_one_item_is_zero() {
+            let arr = [-1, 0, -3, 4, 0];
+            let mut p1 = PointND::new(arr);
+
+            p1 /= PointND::new(arr);
+            for i in 0..p1.dims() {
+                assert_eq!(p1[i], arr[i] / arr[i]);
             }
         }
 
@@ -607,7 +716,6 @@ mod tests {
 
             assert_ne!(p1, p2);
         }
-
 
     }
 
