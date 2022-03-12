@@ -252,7 +252,7 @@ impl<T, const N: usize> PointND<T, N>
 
 
     /**
-
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
      */
     // Did not call apply_dims() inside this to avoid the dimension checks it does
     pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
@@ -267,6 +267,9 @@ impl<T, const N: usize> PointND<T, N>
     }
 
     /**
+     Consumes ```self``` and calls the ```modifier``` the items at specified ```dims``` contained by ```self``` to create a new ```PointND```
+
+     Any items at dimensions not specified will be passed to the new point as is
      */
     pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
@@ -284,6 +287,7 @@ impl<T, const N: usize> PointND<T, N>
     }
 
     /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and ```values``` to create a new ```PointND```
      */
     pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
@@ -297,8 +301,9 @@ impl<T, const N: usize> PointND<T, N>
     }
 
     /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
      */
-    pub fn apply_point<F>(self, other: PointND<T, N>, modifier: F) -> Result<Self, ()>
+    pub fn apply_point<F>(self, other: Self, modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
 
         self.apply_vals(other.into_arr(), modifier)
