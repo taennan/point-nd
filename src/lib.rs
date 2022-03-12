@@ -586,6 +586,20 @@ impl<T> PointND<T, 4>
 }
 
 
+#[macro_export]
+macro_rules! dim {
+    (x) => { 0usize };
+    (y) => { 1usize };
+    (z) => { 2usize };
+    (w) => { 3usize };
+}
+
+#[macro_export]
+macro_rules! dims {
+    ( $( $d:ident ), * ) => { [ $( dim!($d), )* ] };
+}
+
+
 #[cfg(test)]
 mod tests {
 
@@ -953,6 +967,26 @@ mod tests {
             }
 
             Ok(())
+        }
+
+    }
+
+    #[cfg(test)]
+    mod macros {
+        use super::*;
+
+        #[test]
+        fn dim_works() {
+            assert_eq!(dim!(x), 0);
+            assert_eq!(dim!(y), 1);
+            assert_eq!(dim!(z), 2);
+            assert_eq!(dim!(w), 3);
+        }
+
+        #[test]
+        fn dims_works() {
+            assert_eq!(dims![x,y,z,w], [0,1,2,3]);
+            assert_eq!(dims![x,z,y],  [0,2,1]);
         }
 
     }
