@@ -6,7 +6,13 @@ See the ```PointND``` struct for basic usage
 
  */
 
-use std::ops::{Deref, DerefMut};
+use std::{
+    ops::{
+        Deref, DerefMut,
+        Add, Sub, Mul, Div,
+        Neg
+    }
+};
 
 
 /**
@@ -15,9 +21,9 @@ The whole _point_ of the crate (get it?)
 
 This is really just a wrapper around an array with convenience methods for accessing values if it's dimensions are within ```1..=4```
 
-# Examples
+# Basic Usage
 
-## Constructing a Point
+## Making a Point
 
 No matter how a PointND is constructed, the second generic arg must be filled with the number of dimensions it needs to have (i.e - the length of the array to push on the stack)
 
@@ -97,28 +103,48 @@ use point_nd::PointND;
 let p: PointND<i32, 2> = PointND::fill(10);
 assert_eq!(p.dims(), 2);
 ```
+
+# Transforming Points
+
+## Appliers
+
+ The ```apply```, ```apply_vals```, ```apply_dims``` and ```apply_point``` methods all consume self and return a new point after applying a function to all contained values
+
+ Multiple appliers can be chained together to make complex transformations to a ```PointND```
  */
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PointND<T, const N: usize>([T; N])
     where T: Clone + Copy + Default;
 
-
 impl<T, const N: usize> PointND<T, N>
     where T: Clone + Copy + Default {
 
     /**
-     Returns a new ```PointND``` with values from the specified array or vector
+     Returns a new ```PointND``` with values from the specified array
+
+     This is the only constructor that does not need type annotation
+
+     ### Panics
+
+     If the length of the array is zero
+     */
+    pub fn new(arr: [T; N]) -> Self {
+        if arr.len() == 0 {
+            panic!("Cannot construct PointND with zero dimensions");
+        }
+        PointND(arr)
+    }
+
+    /**
+     Returns a new ```PointND``` with values from the specified slice
 
      ### Panics
 
      If the length of the slice is zero
      */
     pub fn from(slice: &[T]) -> Self {
-        if slice.len() == 0 {
-            panic!("Cannot construct PointND with zero dimensions");
-        }
         let arr: [T; N] = slice.try_into().unwrap();
-        PointND(arr)
+        PointND::new(arr)
     }
 
     /**
@@ -144,9 +170,9 @@ impl<T, const N: usize> PointND<T, N>
 
 
     /**
-     If the index specified is within the dimensions of self, sets the value at ```i``` to the ```new_val``` and returns ```Ok(())```
+     Safe method of setting values
 
-    Otherwise, if ```i``` is out of range, does nothing and returns ```Err(())```
+     Sets value at index ```i``` to ```new_val``` and returns ```Ok```. If the index specified was out of range, does nothing and returns ```Err```
      */
     pub fn set(&mut self, i: usize, new_val: T) -> Result<(), ()> {
         if self.dims() < i { return Err(()) }
@@ -194,7 +220,7 @@ impl<T, const N: usize> PointND<T, N>
         Ok( PointND::<T, N>::from(&arr) )
     }
 
-    pub fn apply_with<F>(self, other: PointND<T, N>, modifier: F) -> Result<Self, ()>
+    pub fn apply_point<F>(self, other: PointND<T, N>, modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
 
         self.apply_vals(other.into_arr(), modifier)
@@ -214,6 +240,7 @@ impl<T, const N: usize> PointND<T, N>
 }
 
 
+// Deref
 impl<T, const N: usize> Deref for PointND<T, N>
     where T: Clone + Copy + Default {
 
@@ -233,9 +260,83 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 }
 
 
+// Math operators
+impl<T, const N: usize> Neg for PointND<T, N>
+    where T: Clone + Copy + Default + Neg<Output = T> {
+
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        let mut arr = self.into_arr();
+        for i in 0..N {
+            arr[i] = -arr[i]
+        }
+
+        PointND::new(arr)
+    }
+
+}
+
+impl<T, const N: usize> Add for PointND<T, N>
+    where T: Add<Output = T> + Clone + Copy + Default  {
+
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut arr = self.into_arr();
+        for i in 0..N {
+            arr[i] = arr[i] + rhs[i];
+        }
+
+        PointND::new(arr)
+    }
+
+}
+impl<T, const N: usize> Sub for PointND<T, N>
+    where T: Sub<Output = T> + Clone + Copy + Default {
+
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut arr = self.into_arr();
+        for i in 0..N {
+            arr[i] = arr[i] - rhs[i];
+        }
+
+        PointND::new(arr)
+    }
+
+}
+impl<T, const N: usize> Mul for PointND<T, N>
+    where T: Mul<Output = T> + Clone + Copy + Default {
+
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mut arr = self.into_arr();
+        for i in 0..N {
+            arr[i] = arr[i] * rhs[i];
+        }
+
+        PointND::new(arr)
+    }
+
+}
+impl<T, const N: usize> Div for PointND<T, N>
+    where T: Div<Output = T> + Clone + Copy + Default {
+
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        let mut arr = self.into_arr();
+        for i in 0..N {
+            arr[i] = arr[i] / rhs[i];
+        }
+
+        PointND::new(arr)
+    }
+
+}
+
+
 // Convenience Getters and Setters
 /// ### 1D
-/// Function for safely getting and setting the first value contained by a 1D ```PointND```
+/// Functions for safely getting and setting the first value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
     where T: Clone + Copy + Default  {
 
@@ -289,44 +390,325 @@ impl<T> PointND<T, 4>
 
 
 #[cfg(test)]
-mod test {
+mod tests {
 
     use crate::*;
 
     #[test]
-    fn can_iter() {
+    fn cannot_set_out_of_bounds_index() {
 
-        let arr = [0, 1, 2, 3];
+        let arr = [0,-1,2,-3];
+        let mut p = PointND::new(arr);
 
-        let p = PointND::<u8, 4>::from(&arr);
-        for (i, item) in p.iter().enumerate() {
-            assert_eq!(arr[i], *item);
-        }
+        let err = p.set(100, 100);
 
-        let mut p = PointND::<u8, 4>::from(&arr);
-        for item in p.iter_mut() {
-            *item = 10;
-        }
+        assert_eq!(err, Err(()));
+        assert_eq!(p.into_arr(), arr);
+    }
 
-        for i in p.into_iter() {
-            assert_eq!(i, 10u8);
+    #[cfg(test)]
+    mod iterating {
+        use super::*;
+
+        #[test]
+        fn can_iter() {
+
+            let arr = [0, 1, 2, 3];
+
+            let p = PointND::<u8, 4>::from(&arr);
+            for (i, item) in p.iter().enumerate() {
+                assert_eq!(arr[i], *item);
+            }
+
+            let mut p = PointND::<u8, 4>::from(&arr);
+            for item in p.iter_mut() {
+                *item = 10;
+            }
+
+            for i in p.into_iter() {
+                assert_eq!(i, 10u8);
+            }
+
         }
 
     }
 
-    #[test]
-    fn can_apply() {
+    #[cfg(test)]
+    mod constructors {
+        use super::*;
 
-        let arr = [0, 1, 2, 3];
-
-        let p = PointND::<u8, 4>
-            ::from(&arr)
-            .apply(|a| Ok( a * 2 ))
-            .unwrap();
-
-        for (a, b) in arr.iter().zip(p.iter()) {
-            assert_eq!(*a * 2, *b);
+        #[test]
+        fn new_works() {
+            let p = PointND::new([0,1,2]);
+            assert_eq!(p.dims(), 3);
         }
+        #[test]
+        #[should_panic]
+        fn new_cannot_construct_with_zero_dimensions() {
+            PointND::<i32, 0>::new([]);
+        }
+
+        #[test]
+        fn from_works() {
+            let arr = [0.0, 0.1, 0.2];
+            let p = PointND::<f64, 3>::from(&arr);
+            for i in 0..p.dims() {
+                assert_eq!(arr[i], p[i]);
+            }
+        }
+        #[test]
+        #[should_panic]
+        fn from_cannot_construct_with_zero_dimensions() {
+            PointND::<i32, 0>::from(&[]);
+        }
+
+        #[test]
+        fn fill_works() {
+            let fill_val = 21u8;
+            let p = PointND::<u8, 5>::fill(fill_val);
+            for i in p.into_iter() {
+                assert_eq!(i, fill_val);
+            }
+        }
+        #[test]
+        #[should_panic]
+        fn fill_cannot_construct_with_zero_dimensions() {
+            PointND::<i32, 0>::fill(100);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod appliers {
+        use super::*;
+
+        #[test]
+        fn can_apply() {
+
+            let arr = [0, 1, 2, 3];
+
+            let p = PointND::<u8, 4>
+                ::from(&arr)
+                .apply(|a| Ok( a * 2 ))
+                .unwrap();
+
+            for (a, b) in arr.iter().zip(p.iter()) {
+                assert_eq!(*a * 2, *b);
+            }
+        }
+
+    }
+
+    #[cfg(test)]
+    mod indexing {
+        use super::*;
+
+        #[test]
+        #[should_panic]
+        fn cannot_get_out_of_bounds_index() {
+            let p = PointND::new([0,1,2]);
+            let _x = p[p.dims() + 1];
+        }
+
+        #[test]
+        fn can_set_value_by_index() {
+
+            let mut p = PointND::new([0,1,2]);
+
+            let new_val = 9999;
+            p[1] = new_val;
+
+            assert_eq!(p.into_arr(), [0, new_val, 2]);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod operators {
+        use super::*;
+
+
+        #[test]
+        fn can_add() {
+            let arr = [0, -1, 2, -3];
+            let p1 = PointND::new(arr);
+            let p2 = PointND::new(arr);
+
+            let p3 = p1 + p2;
+            for (a, b) in p3.into_arr().into_iter().zip(arr){
+                assert_eq!(a, b + b);
+            }
+        }
+
+        #[test]
+        fn can_sub() {
+            let arr = [0, -1, 2, -3];
+            let p1 = PointND::new(arr);
+            let p2 = PointND::new(arr);
+
+            let p3 = p1 - p2;
+            for (a, b) in p3.into_arr().into_iter().zip(arr){
+                assert_eq!(a, b - b);
+            }
+        }
+
+        #[test]
+        fn can_mul() {
+            let arr = [0, -1, 2, -3];
+            let p1 = PointND::new(arr);
+            let p2 = PointND::new(arr);
+
+            let p3 = p1 * p2;
+            for (a, b) in p3.into_arr().into_iter().zip(arr){
+                assert_eq!(a, b * b);
+            }
+        }
+
+        #[test]
+        fn can_div() {
+            let arr = [-1, 2, -3, 4];
+            let p1 = PointND::new(arr);
+            let p2 = PointND::new(arr);
+
+            let p3 = p1 / p2;
+            for (a, b) in p3.into_arr().into_iter().zip(arr){
+                assert_eq!(a, b / b);
+            }
+        }
+
+        #[test]
+        #[should_panic]
+        fn cannot_div_if_one_item_is_zero() {
+            let arr = [0, -1, 0, -3, 0];
+            let p1 = PointND::new(arr);
+            let p2 = PointND::new(arr);
+
+            let p3 = p1 / p2;
+            for (a, b) in p3.into_arr().into_iter().zip(arr){
+                assert_eq!(a, b / b);
+            }
+        }
+
+        #[test]
+        fn can_eq() {
+            let arr = [0, -1, 2, -3];
+            let p1 = PointND::new(arr);
+            let p2 = PointND::new(arr);
+
+            assert_eq!(p1, p2);
+        }
+
+        #[test]
+        fn can_ne() {
+            let arr1 = [1,2,3,4];
+            let p1 = PointND::new(arr1);
+            let arr2 = [5,6,7,8];
+            let p2 = PointND::new(arr2);
+
+            assert_ne!(p1, p2);
+        }
+
+
+    }
+
+    #[cfg(test)]
+    mod convenience_methods {
+        use super::*;
+
+        #[test]
+        fn getter_for_1d_points_work() {
+            let arr = [0];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+        }
+        #[test]
+        fn setter_for_1d_points_work() -> Result<(), ()> {
+
+            let old_vals = [0];
+            let new_vals = [4];
+            let mut p = PointND::new(old_vals);
+
+            for i in 0..p.dims() {
+                p.set(i, new_vals[i])?;
+                assert_eq!(p[i], new_vals[i]);
+            }
+
+            Ok(())
+        }
+
+        #[test]
+        fn getters_for_2d_points_work() {
+            let arr = [0,1];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+        }
+        #[test]
+        fn setters_for_2d_points_work() -> Result<(), ()> {
+
+            let old_vals = [0,1];
+            let new_vals = [4,5];
+            let mut p = PointND::new(old_vals);
+
+            for i in 0..p.dims() {
+                p.set(i, new_vals[i])?;
+                assert_eq!(p[i], new_vals[i]);
+            }
+
+            Ok(())
+        }
+
+        #[test]
+        fn getters_for_3d_points_work() {
+            let arr = [0,1,2];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+            assert_eq!(*p.z(), arr[2]);
+        }
+        #[test]
+        fn setters_for_3d_points_work() -> Result<(), ()> {
+
+            let old_vals = [0,1,2];
+            let new_vals = [4,5,6];
+            let mut p = PointND::new(old_vals);
+
+            for i in 0..p.dims() {
+                p.set(i, new_vals[i])?;
+                assert_eq!(p[i], new_vals[i]);
+            }
+
+            Ok(())
+        }
+
+        #[test]
+        fn getters_for_4d_points_work() {
+            let arr = [0,1,2,3];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+            assert_eq!(*p.z(), arr[2]);
+            assert_eq!(*p.w(), arr[3]);
+        }
+        #[test]
+        fn setters_for_4d_points_work() -> Result<(), ()> {
+
+            let old_vals = [0,1,2,3];
+            let new_vals = [4,5,6,7];
+            let mut p = PointND::new(old_vals);
+
+            for i in 0..p.dims() {
+                p.set(i, new_vals[i])?;
+                assert_eq!(p[i], new_vals[i]);
+            }
+
+            Ok(())
+        }
+
     }
 
 }
