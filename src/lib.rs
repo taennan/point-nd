@@ -1,6 +1,6 @@
 /*!
 
-A simple multidimensional point struct, based on an array.
+A simple and flexible multidimensional point struct, based on an array.
 
 See the ```PointND``` struct for basic usage
 
@@ -20,9 +20,8 @@ use std::{
 
 The whole _point_ of the crate
 
-This is really just a wrapper around an array with convenience methods for accessing values if it's dimensions are within ```1..=4```
-
-Therefore, all methods implemented for arrays are available with this
+Think of this as an array with convenience methods for accessing values if it's dimensions are
+within ```1..=4```, i.e - all methods implemented for arrays are available with this
 
 # Making a Point
 
@@ -84,22 +83,33 @@ Alternatively, since ```PointND``` implements ```Deref```, all methods of gettin
 
 These are the only methods available for ```PointND```'s with dimensions **not** within ```1..=4```
 
-Their use can be made easier using the ```dim```, ```dims``` and ```dimr``` macros (see their documentation for more info)
+Their use can be made easier using the dimension macros: ```dim```, ```dims``` and ```dimr``` (see their documentation for more info)
 
 ```
 # use point_nd::PointND;
-# let arr: [i32; 2] = [101,1];
-# let mut p: PointND<_, 2> = PointND::new(arr);
-// Exactly like safely accessing an array
-let x: Option<&i32> = p.get(0);
-assert_eq!(*x.unwrap(), 101);
+// A 5D point, cannot use any of the convenience methods
+let arr = [-2, -1, 0, 1, 2];
+let mut p = PointND::new(arr);
 
-// Exactly like indexing an array
-//  Note: Unlike other accessing methods, this returns a copy of the value
+// ERROR: Not implemented for PointND<i32, 5>
+// let x = p.x()
+// ...
+// let w = p.w();
+
+// Instead use these deref array methods:
+//  Safely getting
+let x: Option<&i32> = p.get(0);
+assert_eq!(*x.unwrap(), arr[0]);
+
+// Indexing
 let y: i32 = p[1];
 assert_eq!(y, arr[1]);
 
-// Setting via indexing
+// Slicing
+let z_to_last: &[i32] = &p[2..];
+assert_eq!(z_to_last, [0,1,2]);
+
+// Setting via Indexing
 p[1] = 345;
 assert_eq!(p[1], 345);
 ```
@@ -114,7 +124,7 @@ let p: PointND<i32, 2> = PointND::new([0,1]);
 assert_eq!(p.dims(), 2);
 // Alternatively, as PointND implements Deref, we can use len().
 // It's name isn't as descriptive however
-assert_eq!(p.len(), 2)
+assert_eq!(p.len(), 2);
 ```
 
 # Iterating
@@ -228,10 +238,11 @@ pub struct PointND<T, const N: usize>([T; N])
 impl<T, const N: usize> PointND<T, N>
     where T: Clone + Copy + Default {
 
+
     /**
      Returns a new ```PointND``` with values from the specified array
 
-     This is the only constructor that does not need ever type annotation
+     This is the only constructor that does not ever need type annotation
 
      ### Panics
 
@@ -247,9 +258,30 @@ impl<T, const N: usize> PointND<T, N>
     /**
      Returns a new ```PointND``` with values from the specified slice
 
+     This constructor is probably only useful when ```Vec```'s of unknown length are
+     the only collections available
+
+     If the compiler is not able to infer the dimensions (a.k.a - length)
+     of the point, it needs to be explicitly specified
+
+     ```
+     # use point_nd::PointND;
+     // Explicitly specifying dimensions
+     let p = PointND::<_, 3>::from(&vec![0,1,2]);
+
+     // The generics don't always have to be specified though, for example
+     let p1 = PointND::new([0,1]);       // Compiler knows this has 2 dimensions
+     let p2 = PointND::from(&vec![2,3]);
+
+     // Later, p2 is added to p1. The compiler is able to infer its dimensions
+     let p = p1 + p2;
+     ```
+
      ### Panics
 
      If the length of the slice is zero
+
+     If the slice passed cannot be converted into an array
      */
     pub fn from(slice: &[T]) -> Self {
         let arr: [T; N] = slice.try_into().unwrap();
@@ -258,6 +290,22 @@ impl<T, const N: usize> PointND<T, N>
 
     /**
      Returns a new ```PointND``` with all values set as specified
+
+     If the compiler is not able to infer the dimensions (a.k.a - length)
+     of the point, it needs to be explicitly specified
+
+     See the ```from()``` function for cases when generics don't need to be explicitly specified
+
+     ```
+     # use point_nd::PointND;
+     // A point with 10 dimensions with all values set to 2
+     let p = PointND::<_, 10>::fill(2);
+
+     assert_eq!(p.dims(), 10);
+     for i in p.into_iter() {
+        assert_eq!(i, 2);
+     }
+     ```
 
      ### Panics
 
@@ -282,6 +330,20 @@ impl<T, const N: usize> PointND<T, N>
      Safe method of setting values
 
      Sets value at index ```i``` to ```new_val``` and returns ```Ok```. If the index specified was out of range, does nothing and returns ```Err```
+
+     This is probably only useful if dealing with ```PointND```'s of differing dimensions at once
+     ```
+     # use point_nd::PointND;
+     let mut p = PointND::new([0,1]);
+
+     // Setting an item within bounds, returns Ok
+     let result = p.set(0, 21);
+     assert!(result.is_ok());
+
+     // Setting an item out of bounds, returns Err
+     let result = p.set(1000000, 4);
+     assert!(result.is_err());
+     ```
      */
     pub fn set(&mut self, i: usize, new_val: T) -> Result<(), ()> {
         if self.dims() < i { return Err(()) }
@@ -314,7 +376,7 @@ impl<T, const N: usize> PointND<T, N>
             arr[i] = modifier(self[i])?;
         }
 
-        Ok( PointND::<T, N>::from(&arr) )
+        Ok( PointND::new(arr) )
     }
 
     /**
@@ -345,7 +407,7 @@ impl<T, const N: usize> PointND<T, N>
             }
         }
 
-        Ok( PointND::<T, N>::from(&arr) )
+        Ok( PointND::new(arr) )
     }
 
     /**
@@ -375,7 +437,7 @@ impl<T, const N: usize> PointND<T, N>
             arr[i] = modifier(self[i], values[i])?;
         }
 
-        Ok( PointND::<T, N>::from(&arr) )
+        Ok( PointND::new(arr) )
     }
 
     /**
@@ -407,7 +469,7 @@ impl<T, const N: usize> PointND<T, N>
 
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
-        self.0
+        *self
     }
 
     /// Consumes ```self```, returning the contained array as a vector
@@ -625,6 +687,7 @@ impl<T> PointND<T, 4>
 }
 
 
+// Dimension Macros
 /**
  Converts an identifier _x_, _y_, _z_ or _w_ to a usize value for indexing
 
@@ -633,6 +696,7 @@ impl<T> PointND<T, 4>
  It is recommended to use parentheses when calling this macro for clarity
 
  ```
+ # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dim;
  let x_index: usize = dim!(x);
  assert_eq!(x_index, 0usize);
@@ -641,6 +705,11 @@ impl<T> PointND<T, 4>
 
  // ERROR: Only allowed to use one of x, y, z or w
  // let fifth_dimension = dim!(v);
+
+ // ERROR: Only accepts one identifier
+ //        If multiple dimensions are what you need, see the dims macro
+ // let sixth_and_seventh = dim!(u, t);
+ # }
  ```
 
  This can be especially useful for indexing a ```PointND``` (or any collection indexable with a usize)
@@ -648,6 +717,7 @@ impl<T> PointND<T, 4>
  If a dimension is passed that is out of bounds, it will result in a compile time error
 
  ```
+ # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::{dim, PointND};
  let p = PointND::new([0,1,2]);
  let y_val = p[dim!(y)];
@@ -655,6 +725,7 @@ impl<T> PointND<T, 4>
 
  // ERROR: Index out of bounds
  // let w_val = p[dim!(w)];
+ # }
  ```
  */
 #[macro_export]
@@ -721,7 +792,7 @@ macro_rules! dims {
 
  It is recommended to use parentheses when calling this macro for clarity
 
- The possible variations:
+ ### Possible Variations:
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -879,7 +950,7 @@ mod tests {
         #[test]
         fn can_apply() {
 
-            let arr = [0, 1, 2, 3];
+            let arr = [0,1,2,3];
 
             let p = PointND::<u8, 4>
                 ::from(&arr)
