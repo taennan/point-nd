@@ -40,7 +40,7 @@ let p: PointND<_, 3> = PointND::from(&vec);
 let p: PointND<i32, 4> = PointND::fill(5);
 
 // The second generic arg is a usize constant and for the ::fill()
-//  and ::from() functions, specifying it is usually necessary
+//  and ::from() functions, specifying it is sometimes necessary
 // If you don't like writing PointND twice for type annotation,
 //  use FQS (fully qualified syntax) instead:
 let p = PointND::<_, 4>::fill(5);
@@ -62,7 +62,7 @@ let p: PointND<_, 2> = PointND::new(arr);
 // As the point has 2 dimensions, we can access
 //  it's values with the x() and y() methods
 let x: &i32 = p.x();
-assert_eq!(x, &arr[0]);
+assert_eq!(*x, arr[0]);
 let y = p.y();
 assert_eq!(*y, arr[1]);
 
@@ -82,7 +82,9 @@ assert_eq!(*p.x(), 101);
 
 Alternatively, since ```PointND``` implements ```Deref```, all methods of getting and setting array elements can work as well
 
-These are the only methods which can be used for ```PointND```'s with dimensions *not* within ```1..=4```
+These are the only methods available for ```PointND```'s with dimensions **not** within ```1..=4```
+
+Their use can be made easier using the ```dim```, ```dims``` and ```dimr``` macros (see their documentation for more info)
 
 ```
 # use point_nd::PointND;
@@ -110,8 +112,45 @@ The number of dimensions can be retrieved using the ```dims()``` method (short f
 # use point_nd::PointND;
 let p: PointND<i32, 2> = PointND::new([0,1]);
 assert_eq!(p.dims(), 2);
-// Alternatively, as PointND implements Deref:
+// Alternatively, as PointND implements Deref, we can use len().
+// It's name isn't as descriptive however
 assert_eq!(p.len(), 2)
+```
+
+# Iterating
+
+Iterating over a ```PointND``` is as easy as:
+
+```
+# use point_nd::PointND;
+let mut p = PointND::new([0,1]);
+
+for _ in p.iter()      { /* Do stuff */ }
+for _ in p.iter_mut()  { /* Change stuff */ }
+for _ in p.into_iter() { /* Do more stuff */ }
+```
+
+It must be noted that due to the ```Copy``` trait bounds of the items contained by a ```PointND```,
+using ```into_iter()``` will not actually move the point as we are actually iterating over the contained
+array via the ```Deref``` trait.
+
+```
+# use point_nd::PointND;
+# let mut p = PointND::new([0,1]);
+// The point 'p' is still usable after the call to into_iter()
+assert_eq!(p.dims(), 2);
+```
+
+If destroying innocent points is your thing however, using ```into_arr()``` or ```into_vec()``` to
+consume the point before iterating will move it out of scope
+
+```
+# use point_nd::PointND;
+# let mut p = PointND::new([0,1]);
+for _ in p.into_vec().into_iter() { /* Do stuff */ }
+
+// ERROR: Can't access moved value
+// assert_eq!(p.dims(), 2);
 ```
 
 # Transforming Points
@@ -279,7 +318,7 @@ impl<T, const N: usize> PointND<T, N>
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` the items at specified ```dims``` contained by ```self``` to create a new ```PointND```
+     Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
 
      Any items at dimensions not specified will be passed to the new point as is
      ```
@@ -352,7 +391,7 @@ impl<T, const N: usize> PointND<T, N>
      let p3 = PointND
          ::new([1,2,3,4])                         // Creates a new PointND
          .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
-         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the new point returned
+         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the returned point
                                                   //  with the items in p2
      assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
      # Ok(())
@@ -595,8 +634,10 @@ impl<T> PointND<T, 4>
 
  ```
  # use point_nd::dim;
- let x_index: usize = dim!(x);   // Expands to 0usize
- let y_index = dim!(y);          // Expands to 1usize
+ let x_index: usize = dim!(x);
+ assert_eq!(x_index, 0usize);
+ let y_index = dim!(y);
+ assert_eq!(y_index, 1usize);
 
  // ERROR: Only allowed to use one of x, y, z or w
  // let fifth_dimension = dim!(v);
@@ -615,7 +656,6 @@ impl<T> PointND<T, 4>
  // ERROR: Index out of bounds
  // let w_val = p[dim!(w)];
  ```
-
  */
 #[macro_export]
 macro_rules! dim {
@@ -629,6 +669,43 @@ macro_rules! dim {
 
 /**
  Converts an array of identifiers to an array of usize values
+
+ Using any identifier or expression apart from _x_, _y_, _z_ or _w_ will result in a compile time error
+
+ It is recommended to use square brackets when calling this macro for clarity
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::dims;
+ let index_arr = dims![
+     x,  // 0usize
+     y,  // 1
+     z,  // 2
+     w   // 3
+ ];
+
+ // Using identifiers multiple times is allowed,
+ //  it's only a more readable way to specify indexes after all
+ let index_arr =  dims![x,x, y,y, z,z];
+ assert_eq!(index_arr, [0,0, 1,1, 2,2usize]);
+ # }
+ ```
+
+ This can be especially useful with the ```apply_dims``` method available to ```PointND```'s
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::{dims, PointND};
+ # fn apply_dims_example() -> Result<(), ()> {
+ let p = PointND
+     ::new([0,1,2,3])
+     .apply_dims(&dims![y,w], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
+     .apply_dims(&dims![x,z], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
+ assert_eq!(p.into_arr(), [10, 2, 20, 6]);
+ # Ok(())
+ # }
+ # }
+ ```
  */
 #[macro_export]
 macro_rules! dims {
@@ -639,30 +716,81 @@ macro_rules! dims {
 
 /**
  Converts a range of identifiers and expressions to a range of usize values
+
+ Using any identifiers apart from _x_, _y_, _z_ or _w_ will result in a compile time error
+
+ It is recommended to use parentheses when calling this macro for clarity
+
+ The possible variations:
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::{dimr, PointND};
+ /*
+  PLEASE NOTE!
+  x = 0usize
+  y = 1
+  z = 2
+  w = 3
+  */
+
+ // Range with identifiers
+ assert_eq!(dimr!(x..z), 0..2usize);
+
+ // RangeInclusive with identifiers
+ assert_eq!(dimr!(y..=w), 1..=3usize);
+
+ // RangeTo with identifiers
+ assert_eq!(dimr!(..z), ..2);
+
+ // RangeToInclusive with identifiers
+ assert_eq!(dimr!(..=w), ..=3);
+
+ // RangeFrom with identifier
+ assert_eq!(dimr!(y..), 1..);
+
+ // Range with identifier and expression
+ assert_eq!(dimr!(x..10), 0..10usize);
+
+ // RangeInclusive with identifier and expression
+ assert_eq!(dimr!(x..=7), 0..=7usize);
+ # }
+ ```
+
+ This is especially useful when taking slices of a ```PointND```
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::{dimr, PointND};
+ let p = PointND::new([0,1,2,3,4,5]);
+ let slice = &p[dimr!(x..=z)];
+ assert_eq!(slice, [0,1,2]);
+ # }
+ ```
  */
 #[macro_export]
 macro_rules! dimr {
 
-    // Identity to Identity
-    //  x..w
+    // Ident to Ident
+    //  Range x..w
     ( $a:ident..$b:ident ) => { dim!($a)..dim!($b) };
-    //  y..=z
+    //  RangeInclusive y..=z
     ( $a:ident..=$b:ident ) => { dim!($a)..=dim!($b) };
 
-    // Identity to Expression
-    //  z...6
+    // Ident to Expr
+    //  Range z...6
     ( $a:ident..$b:expr ) => { dim!($a)..$b };
-    //  w..=9
+    //  RangeInclusive w..=9
     ( $a:ident..=$b:expr ) => { dim!($a)..=$b };
 
-    // Infinity to Identifier
-    //  ..w
+    // Inf to Ident
+    //  RangeTo ..w
     ( ..$a:ident ) => { ..dim!($a) };
-    // ..=z
+    //  RangeToInclusive ..=z
     ( ..=$a:ident ) => { ..=dim!($a) };
 
-    // Identifier to Infinity
-    //  x..
+    // Ident to Inf
+    //  RangeFrom x..
     ( $a:ident.. ) => { dim!($a).. };
 
 }
@@ -1048,13 +1176,6 @@ mod tests {
     #[cfg(test)]
     mod macros {
         use super::*;
-
-        #[test]
-        #[allow(unused_variables)]
-        fn ident_wont_access_var() {
-            let x = 2usize;
-            assert_eq!(dim!(x), 0);
-        }
 
         #[test]
         fn dim_works() {
