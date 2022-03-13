@@ -586,38 +586,92 @@ impl<T> PointND<T, 4>
 }
 
 
+/**
+ Converts an identifier _x_, _y_, _z_ or _w_ to a usize value for indexing
+
+ Using any identifier apart from the above or multiple identifiers will result in a compile time error
+
+ It is recommended to use parentheses when calling this macro for clarity
+
+ ```
+ # use point_nd::dim;
+ let x_index: usize = dim!(x);   // Expands to 0usize
+ let y_index = dim!(y);          // Expands to 1usize
+
+ // ERROR: Only allowed to use one of x, y, z or w
+ // let fifth_dimension = dim!(v);
+ ```
+
+ This can be especially useful for indexing a ```PointND``` (or any collection indexable with a usize)
+
+ If a dimension is passed that is out of bounds, it will result in a compile time error
+
+ ```
+ # use point_nd::{dim, PointND};
+ let p = PointND::new([0,1,2]);
+ let y_val = p[dim!(y)];
+ assert_eq!(y_val, 1);
+
+ // ERROR: Index out of bounds
+ // let w_val = p[dim!(w)];
+ ```
+
+ */
 #[macro_export]
 macro_rules! dim {
+
     (x) => { 0usize };
     (y) => { 1usize };
     (z) => { 2usize };
     (w) => { 3usize };
+
 }
 
+/**
+ Converts an array of identifiers to an array of usize values
+ */
 #[macro_export]
 macro_rules! dims {
+
     ( $( $d:ident ), * ) => { [ $( dim!($d), )* ] };
 
-    ( $a:ident..=$b:ident ) => { dim!($a)..=dim!($b) }
 }
+
+/**
+ Converts a range of identifiers and expressions to a range of usize values
+ */
+#[macro_export]
+macro_rules! dimr {
+
+    // Identity to Identity
+    //  x..w
+    ( $a:ident..$b:ident ) => { dim!($a)..dim!($b) };
+    //  y..=z
+    ( $a:ident..=$b:ident ) => { dim!($a)..=dim!($b) };
+
+    // Identity to Expression
+    //  z...6
+    ( $a:ident..$b:expr ) => { dim!($a)..$b };
+    //  w..=9
+    ( $a:ident..=$b:expr ) => { dim!($a)..=$b };
+
+    // Infinity to Identifier
+    //  ..w
+    ( ..$a:ident ) => { ..dim!($a) };
+    // ..=z
+    ( ..=$a:ident ) => { ..=dim!($a) };
+
+    // Identifier to Infinity
+    //  x..
+    ( $a:ident.. ) => { dim!($a).. };
+
+}
+
 
 
 #[cfg(test)]
 mod tests {
-
     use crate::*;
-
-    #[test]
-    fn cannot_set_out_of_bounds_index() {
-
-        let arr = [0,-1,2,-3];
-        let mut p = PointND::new(arr);
-
-        let err = p.set(100, 100);
-
-        assert_eq!(err, Err(()));
-        assert_eq!(p.into_arr(), arr);
-    }
 
     #[cfg(test)]
     mod iterating {
@@ -713,8 +767,15 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod indexing {
+    mod get_and_set {
         use super::*;
+
+        #[test]
+        fn can_get_slice_by_range_index() {
+            let p = PointND::new([0,1,2,3,4]);
+            let slice = &p[0..3];
+            assert_eq!(*slice, [0,1,2]);
+        }
 
         #[test]
         #[should_panic]
@@ -732,6 +793,18 @@ mod tests {
             p[1] = new_val;
 
             assert_eq!(p.into_arr(), [0, new_val, 2]);
+        }
+
+        #[test]
+        fn cannot_set_out_of_bounds_index() {
+
+            let arr = [0,-1,2,-3];
+            let mut p = PointND::new(arr);
+
+            let err = p.set(100, 100);
+
+            assert_eq!(err, Err(()));
+            assert_eq!(p.into_arr(), arr);
         }
 
     }
@@ -978,22 +1051,87 @@ mod tests {
         use super::*;
 
         #[test]
+        #[allow(unused_variables)]
+        fn ident_wont_access_var() {
+            let x = 2usize;
+            assert_eq!(dim!(x), 0);
+        }
+
+        #[test]
         fn dim_works() {
             assert_eq!(dim!(x), 0);
             assert_eq!(dim!(y), 1);
             assert_eq!(dim!(z), 2);
             assert_eq!(dim!(w), 3);
+
+            let p = PointND::new([-2,-1,0,1,2]);
+            assert_eq!(p[dim!(x)], -2);
+            assert_eq!(p[dim!(y)], -1);
+            assert_eq!(p[dim!(z)], 0);
+            assert_eq!(p[dim!(w)], 1);
         }
 
         #[test]
         fn dims_works() {
             assert_eq!(dims![x,y,z,w], [0,1,2,3]);
             assert_eq!(dims![x,z,y],   [0,2,1]);
+
+            let p = PointND
+                ::new([0,1,2])
+                .apply_dims(&dims![x,y], |item| Ok( item + 10 ))
+                .unwrap();
+            assert_eq!(p.into_arr(), [10, 11, 2]);
+        }
+        #[test]
+        fn can_repeat_identifier_in_dims() {
+            assert_eq!(dims![x,x,x], [0,0,0]);
+            assert_eq!(dims![x,y,x], [0,1,0]);
         }
 
         #[test]
-        fn dims_range_works() {
-            assert_eq!(dims![x..=z], (0..=2));
+        fn dimr_ident_to_ident_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![x..z]];
+            assert_eq!(*slice, [0,1]);
+        }
+        #[test]
+        fn dimr_ident_to_eq_ident_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![y..=w]];
+            assert_eq!(*slice, [1,2,3]);
+        }
+
+        #[test]
+        fn dimr_ident_to_expr_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![y..9]];
+            assert_eq!(*slice, [1,2,3,4,5,6,7,8]);
+        }
+        #[test]
+        fn dimr_ident_to_eq_expr_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![x..=5]];
+            assert_eq!(*slice, [0,1,2,3,4,5]);
+        }
+
+        #[test]
+        fn dimr_inf_to_ident_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![..w]];
+            assert_eq!(*slice, [0,1,2]);
+        }
+        #[test]
+        fn dimr_inf_to_eq_ident_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![..=w]];
+            assert_eq!(*slice, [0,1,2,3]);
+        }
+
+        #[test]
+        fn dimr_ident_to_inf_works() {
+            let arr = [0,1,2,3,4,5,6,7,8,9];
+            let slice = &arr[dimr![x..]];
+            assert_eq!(*slice, arr);
         }
 
     }
