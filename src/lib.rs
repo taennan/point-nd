@@ -563,9 +563,7 @@ impl<T, const N: usize> Mul for PointND<T, N>
 /**
  ### Warning
 
- Use division with caution! Undefined behavior may occur!
-
- For example, dividing by a ```PointND``` that contains a zero will cause a panic
+ Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> Div for PointND<T, N>
     where T: Div<Output = T> + Clone + Copy + Default {
@@ -616,9 +614,7 @@ impl<T, const N: usize> MulAssign for PointND<T, N>
 /**
  ### Warning
 
- Use division with caution! Undefined behavior may occur!
-
- For example, dividing by a ```PointND``` that contains a zero will cause a panic
+ Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> DivAssign for PointND<T, N>
     where T: DivAssign + Clone + Copy + Default {
