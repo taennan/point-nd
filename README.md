@@ -132,7 +132,7 @@ If destroying innocent points is your thing however, using ```into_arr()``` or `
 consume the point before iterating will move it out of scope
 
 ```rust
-for _ in p.into_vec().into_iter() { /* Do stuff */ }
+for _ in p.into_vec().into_iter() { /* Take stuff */ }
 
 // ERROR: Can't access moved value
 // assert_eq!(p.dims(), 2);
@@ -197,7 +197,6 @@ let result = p1.apply_point(zero_point, divide_items);
 // Error is thrown by divide_items, causing apply_point() to throw error
 assert!(result.is_err());
 ```
- */
 
 ## Contributing
 

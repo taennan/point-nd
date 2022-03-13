@@ -157,7 +157,7 @@ consume the point before iterating will move it out of scope
 ```
 # use point_nd::PointND;
 # let mut p = PointND::new([0,1]);
-for _ in p.into_vec().into_iter() { /* Do stuff */ }
+for _ in p.into_vec().into_iter() { /* Take stuff */ }
 
 // ERROR: Can't access moved value
 // assert_eq!(p.dims(), 2);
