@@ -467,6 +467,24 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
+    /**
+     */
+    pub fn reduce<X, F>(&self, reducer: F) -> Result<X, ()>
+        where F: Fn(T, T) -> Result<X, ()> {
+
+        if self.dims() <= 1 {
+            panic!("Cannot use reduce() method on PointND with less than 2 dimensions");
+        }
+
+        let mut x;
+        for i in self.into_iter() {
+            x = red
+        }
+
+        Ok( x )
+    }
+
+
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
         *self

@@ -202,3 +202,6 @@ assert!(result.is_err());
 
 Any suggestions for the codebase, documentation, README (or anything) are more than welcome!
 
+## License
+
+This crate uses the MIT license.
