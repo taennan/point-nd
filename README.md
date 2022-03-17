@@ -202,9 +202,9 @@ assert!(result.is_err());
 
 ## Contributing
 
-Any suggestions for the codebase, documentation, README (or anything) are more than welcome! 
+Any suggestions for the codebase, documentation, README (or anything) are more than welcome!
 
-If you have any problems with the API
+If there are any problems, please submit an issue on our Github page
 
 ## License
 
