@@ -238,7 +238,7 @@ pub struct PointND<T, const N: usize>([T; N])
     where T: Clone + Copy;
 
 impl<T, const N: usize> PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone {
     
     /**
      Returns a new ```PointND``` with values from the specified array
@@ -256,67 +256,6 @@ impl<T, const N: usize> PointND<T, N>
         PointND(arr)
     }
 
-    /**
-     Returns a new ```PointND``` with values from the specified slice
-
-     This constructor is probably only useful when ```Vec```'s of unknown length are
-     the only collections available
-
-     If the compiler is not able to infer the dimensions (a.k.a - length)
-     of the point, it needs to be explicitly specified
-
-     ```
-     # use point_nd::PointND;
-     // Explicitly specifying dimensions
-     let p = PointND::<_, 3>::from(&vec![0,1,2]);
-
-     // The generics don't always have to be specified though, for example
-     let p1 = PointND::new([0,1]);       // Compiler knows this has 2 dimensions
-     let p2 = PointND::from(&vec![2,3]);
-
-     // Later, p2 is added to p1. The compiler is able to infer its dimensions
-     let p = p1 + p2;
-     ```
-
-     ### Panics
-
-     If the length of the slice is zero
-
-     If the length of the slice is not equal to the dimensions specified by the constant generic
-
-     If the slice passed cannot be converted into an array
-     */
-    pub fn from(slice: &[T]) -> Self {
-        let arr: [T; N] = slice.try_into().unwrap();
-        PointND::new(arr)
-    }
-
-    /**
-     Returns a new ```PointND``` with all values set as specified
-
-     If the compiler is not able to infer the dimensions (a.k.a - length)
-     of the point, it needs to be explicitly specified
-
-     See the ```from()``` function for cases when generics don't need to be explicitly specified
-
-     ```
-     # use point_nd::PointND;
-     // A point with 10 dimensions with all values set to 2
-     let p = PointND::<_, 10>::fill(2);
-
-     assert_eq!(p.dims(), 10);
-     for i in p.into_iter() {
-        assert_eq!(i, 2);
-     }
-     ```
-
-     ### Panics
-
-     If the dimensions of the point being constructed is zero
-     */
-    pub fn fill(value: T) -> Self {
-        PointND::<T, N>::from(&[value; N])
-    }
 
 
     /**
@@ -376,7 +315,7 @@ impl<T, const N: usize> PointND<T, N>
 
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = modifier(arr[i])?;
+            arr[i] = modifier(arr[i].clone())?;
         }
 
         Ok( PointND::new(arr) )
@@ -404,7 +343,7 @@ impl<T, const N: usize> PointND<T, N>
         let mut arr = self.into_arr();
         for i in 0..N {
             if dims.contains(&i) {
-                arr[i] = modifier(arr[i])?;
+                arr[i] = modifier(arr[i].clone())?;
             }
         }
 
@@ -435,7 +374,7 @@ impl<T, const N: usize> PointND<T, N>
 
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = modifier(arr[i], values[i])?;
+            arr[i] = modifier(arr[i].clone(), values[i].clone())?;
         }
 
         Ok( PointND::new(arr) )
@@ -480,6 +419,73 @@ impl<T, const N: usize> PointND<T, N>
 
 }
 
+impl<T, const N: usize> PointND<T, N>
+    where T: Clone + Copy {
+
+    /**
+     Returns a new ```PointND``` with values from the specified slice
+
+     This constructor is probably only useful when ```Vec```'s of unknown length are
+     the only collections available
+
+     If the compiler is not able to infer the dimensions (a.k.a - length)
+     of the point, it needs to be explicitly specified
+
+     ```
+     # use point_nd::PointND;
+     // Explicitly specifying dimensions
+     let p = PointND::<_, 3>::from(&vec![0,1,2]);
+
+     // The generics don't always have to be specified though, for example
+     let p1 = PointND::new([0,1]);       // Compiler knows this has 2 dimensions
+     let p2 = PointND::from(&vec![2,3]);
+
+     // Later, p2 is added to p1. The compiler is able to infer its dimensions
+     let p = p1 + p2;
+     ```
+
+     ### Panics
+
+     If the length of the slice is zero
+
+     If the length of the slice is not equal to the dimensions specified by the constant generic
+
+     If the slice passed cannot be converted into an array
+     */
+    pub fn from_slice(slice: &[T]) -> Self {
+        let arr: [T; N] = slice.try_into().unwrap();
+        PointND::new(arr)
+    }
+
+
+    /**
+     Returns a new ```PointND``` with all values set as specified
+
+     If the compiler is not able to infer the dimensions (a.k.a - length)
+     of the point, it needs to be explicitly specified
+
+     See the ```from()``` function for cases when generics don't need to be explicitly specified
+
+     ```
+     # use point_nd::PointND;
+     // A point with 10 dimensions with all values set to 2
+     let p = PointND::<_, 10>::fill(2);
+
+     assert_eq!(p.dims(), 10);
+     for i in p.into_iter() {
+        assert_eq!(i, 2);
+     }
+     ```
+
+     ### Panics
+
+     If the dimensions of the point being constructed is zero
+     */
+    pub fn fill(value: T) -> Self {
+        PointND::<T, N>::from(&[value; N])
+    }
+
+}
 
 // Deref
 impl<T, const N: usize> Deref for PointND<T, N>
