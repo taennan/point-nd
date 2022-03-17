@@ -235,12 +235,11 @@ assert!(result.is_err());
  */
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PointND<T, const N: usize>([T; N])
-    where T: Clone + Copy + Default;
+    where T: Clone + Copy;
 
 impl<T, const N: usize> PointND<T, N>
-    where T: Clone + Copy + Default {
-
-
+    where T: Clone + Copy {
+    
     /**
      Returns a new ```PointND``` with values from the specified array
 
@@ -375,9 +374,9 @@ impl<T, const N: usize> PointND<T, N>
     pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
 
-        let mut arr = [T::default(); N];
+        let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = modifier(self[i])?;
+            arr[i] = modifier(arr[i])?;
         }
 
         Ok( PointND::new(arr) )
@@ -402,12 +401,10 @@ impl<T, const N: usize> PointND<T, N>
     pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Result<Self, ()>
         where F: Fn(T) -> Result<T, ()> {
 
-        let mut arr = [T::default(); N];
+        let mut arr = self.into_arr();
         for i in 0..N {
             if dims.contains(&i) {
-                arr[i] = modifier(self[i])?;
-            } else {
-                arr[i] = self[i];
+                arr[i] = modifier(arr[i])?;
             }
         }
 
@@ -436,9 +433,9 @@ impl<T, const N: usize> PointND<T, N>
     pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Result<Self, ()>
         where F: Fn(T, T) -> Result<T, ()> {
 
-        let mut arr = [T::default(); N];
+        let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = modifier(self[i], values[i])?;
+            arr[i] = modifier(arr[i], values[i])?;
         }
 
         Ok( PointND::new(arr) )
@@ -486,7 +483,7 @@ impl<T, const N: usize> PointND<T, N>
 
 // Deref
 impl<T, const N: usize> Deref for PointND<T, N>
-    where T: Clone + Copy + Default {
+    where T: Clone + Copy {
 
     type Target = [T; N];
     fn deref(&self) -> &Self::Target {
@@ -495,7 +492,7 @@ impl<T, const N: usize> Deref for PointND<T, N>
 
 }
 impl<T, const N: usize> DerefMut for PointND<T, N>
-    where T: Clone + Copy + Default {
+    where T: Clone + Copy {
 
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
@@ -507,7 +504,7 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 // Math operators
 //  Negation
 impl<T, const N: usize> Neg for PointND<T, N>
-    where T: Clone + Copy + Default + Neg<Output = T> {
+    where T: Clone + Copy + Neg<Output = T> {
 
     type Output = Self;
     fn neg(self) -> Self::Output {
@@ -523,7 +520,7 @@ impl<T, const N: usize> Neg for PointND<T, N>
 
 //  Arithmetic
 impl<T, const N: usize> Add for PointND<T, N>
-    where T: Add<Output = T> + Clone + Copy + Default  {
+    where T: Add<Output = T> + Clone + Copy  {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
@@ -537,7 +534,7 @@ impl<T, const N: usize> Add for PointND<T, N>
 
 }
 impl<T, const N: usize> Sub for PointND<T, N>
-    where T: Sub<Output = T> + Clone + Copy + Default {
+    where T: Sub<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -551,7 +548,7 @@ impl<T, const N: usize> Sub for PointND<T, N>
 
 }
 impl<T, const N: usize> Mul for PointND<T, N>
-    where T: Mul<Output = T> + Clone + Copy + Default {
+    where T: Mul<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -570,7 +567,7 @@ impl<T, const N: usize> Mul for PointND<T, N>
  Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> Div for PointND<T, N>
-    where T: Div<Output = T> + Clone + Copy + Default {
+    where T: Div<Output = T> + Clone + Copy {
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
@@ -586,7 +583,7 @@ impl<T, const N: usize> Div for PointND<T, N>
 
 // Arithmetic Assign
 impl<T, const N: usize> AddAssign for PointND<T, N>
-    where T: AddAssign + Clone + Copy + Default {
+    where T: AddAssign + Clone + Copy {
 
     fn add_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -596,7 +593,7 @@ impl<T, const N: usize> AddAssign for PointND<T, N>
 
 }
 impl<T, const N: usize> SubAssign for PointND<T, N>
-    where T: SubAssign + Clone + Copy + Default {
+    where T: SubAssign + Clone + Copy {
 
     fn sub_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -606,7 +603,7 @@ impl<T, const N: usize> SubAssign for PointND<T, N>
 
 }
 impl<T, const N: usize> MulAssign for PointND<T, N>
-    where T: MulAssign + Clone + Copy + Default {
+    where T: MulAssign + Clone + Copy {
 
     fn mul_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -621,7 +618,7 @@ impl<T, const N: usize> MulAssign for PointND<T, N>
  Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> DivAssign for PointND<T, N>
-    where T: DivAssign + Clone + Copy + Default {
+    where T: DivAssign + Clone + Copy {
 
     fn div_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -636,7 +633,7 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
 /// ### 1D
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
-    where T: Clone + Copy + Default  {
+    where T: Clone + Copy  {
 
     pub fn x(&self) -> &T { &self[0] }
 
@@ -646,7 +643,7 @@ impl<T> PointND<T, 1>
 /// ### 2D
 /// Functions for safely getting and setting the values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
-    where T: Clone + Copy + Default  {
+    where T: Clone + Copy  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -658,7 +655,7 @@ impl<T> PointND<T, 2>
 /// ### 3D
 /// Functions for safely getting and setting the values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
-    where T: Clone + Copy + Default  {
+    where T: Clone + Copy  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -672,7 +669,7 @@ impl<T> PointND<T, 3>
 /// ### 4D
 /// Functions for safely getting and setting the values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
-    where T: Clone + Copy + Default  {
+    where T: Clone + Copy  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
