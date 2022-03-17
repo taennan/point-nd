@@ -2,6 +2,8 @@
 
 A simple and flexible multidimensional point struct, based on an array.
 
+This crate uses constant generics, it is recommended for use with a rust version **>= 1.51**
+
 See the ```PointND``` struct for basic usage
 
  */
@@ -281,6 +283,8 @@ impl<T, const N: usize> PointND<T, N>
 
      If the length of the slice is zero
 
+     If the length of the slice is not equal to the dimensions specified by the constant generic
+
      If the slice passed cannot be converted into an array
      */
     pub fn from(slice: &[T]) -> Self {
@@ -464,24 +468,6 @@ impl<T, const N: usize> PointND<T, N>
         where F: Fn(T, T) -> Result<T, ()> {
 
         self.apply_vals(other.into_arr(), modifier)
-    }
-
-
-    /**
-     */
-    pub fn reduce<X, F>(&self, reducer: F) -> Result<X, ()>
-        where F: Fn(T, T) -> Result<X, ()> {
-
-        if self.dims() <= 1 {
-            panic!("Cannot use reduce() method on PointND with less than 2 dimensions");
-        }
-
-        let mut x;
-        for i in self.into_iter() {
-            x = red
-        }
-
-        Ok( x )
     }
 
 

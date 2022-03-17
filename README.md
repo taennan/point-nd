@@ -3,6 +3,8 @@
 
 A simple and flexible data structure for modelling points of **any** dimensions on an axis
 
+This crate uses constant generics, it is recommended for use with a rust version **>= 1.51**
+
 ## Basic Usage
 
 ### Constructing a Point
@@ -200,7 +202,9 @@ assert!(result.is_err());
 
 ## Contributing
 
-Any suggestions for the codebase, documentation, README (or anything) are more than welcome!
+Any suggestions for the codebase, documentation, README (or anything) are more than welcome! 
+
+If you have any problems with the API
 
 ## License
 
