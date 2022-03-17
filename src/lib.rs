@@ -35,13 +35,13 @@ let p: PointND<_, 2> = PointND::new(arr);
 
 // Creating a 3D point from values of a given slice
 let vec: Vec<i32> = vec![0, 1, 2];
-let p: PointND<_, 3> = PointND::from(&vec);
+let p: PointND<_, 3> = PointND::from_slice(&vec);
 
 // Creating a 4D point with all values set to 5
 let p: PointND<i32, 4> = PointND::fill(5);
 
 // The second generic arg is a usize constant and for the ::fill()
-//  and ::from() functions, specifying it is sometimes necessary
+//  and ::from_slice() functions, specifying it is sometimes necessary
 // If you don't like writing PointND twice for type annotation,
 //  use FQS (fully qualified syntax) instead:
 let p = PointND::<_, 4>::fill(5);
@@ -235,8 +235,9 @@ assert!(result.is_err());
  */
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PointND<T, const N: usize>([T; N])
-    where T: Clone + Copy;
+    where T: Clone;
 
+// When items implement at least Clone
 impl<T, const N: usize> PointND<T, N>
     where T: Clone {
     
@@ -255,7 +256,6 @@ impl<T, const N: usize> PointND<T, N>
         }
         PointND(arr)
     }
-
 
 
     /**
@@ -288,7 +288,9 @@ impl<T, const N: usize> PointND<T, N>
      ```
      */
     pub fn set(&mut self, i: usize, new_val: T) -> Result<(), ()> {
-        if self.dims() < i { return Err(()) }
+        if self.dims() < i {
+            return Err(())
+        }
 
         self[i] = new_val;
         Ok(())
@@ -409,7 +411,7 @@ impl<T, const N: usize> PointND<T, N>
 
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
-        *self
+        self.0
     }
 
     /// Consumes ```self```, returning the contained array as a vector
@@ -419,6 +421,7 @@ impl<T, const N: usize> PointND<T, N>
 
 }
 
+// When items implement at least Clone and Copy
 impl<T, const N: usize> PointND<T, N>
     where T: Clone + Copy {
 
@@ -434,11 +437,11 @@ impl<T, const N: usize> PointND<T, N>
      ```
      # use point_nd::PointND;
      // Explicitly specifying dimensions
-     let p = PointND::<_, 3>::from(&vec![0,1,2]);
+     let p = PointND::<_, 3>::from_slice(&vec![0,1,2]);
 
      // The generics don't always have to be specified though, for example
      let p1 = PointND::new([0,1]);       // Compiler knows this has 2 dimensions
-     let p2 = PointND::from(&vec![2,3]);
+     let p2 = PointND::from_slice(&vec![2,3]);
 
      // Later, p2 is added to p1. The compiler is able to infer its dimensions
      let p = p1 + p2;
@@ -456,7 +459,6 @@ impl<T, const N: usize> PointND<T, N>
         let arr: [T; N] = slice.try_into().unwrap();
         PointND::new(arr)
     }
-
 
     /**
      Returns a new ```PointND``` with all values set as specified
@@ -482,14 +484,15 @@ impl<T, const N: usize> PointND<T, N>
      If the dimensions of the point being constructed is zero
      */
     pub fn fill(value: T) -> Self {
-        PointND::<T, N>::from(&[value; N])
+        PointND::<T, N>::from_slice(&[value; N])
     }
 
 }
 
+
 // Deref
 impl<T, const N: usize> Deref for PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone {
 
     type Target = [T; N];
     fn deref(&self) -> &Self::Target {
@@ -498,7 +501,7 @@ impl<T, const N: usize> Deref for PointND<T, N>
 
 }
 impl<T, const N: usize> DerefMut for PointND<T, N>
-    where T: Clone + Copy {
+    where T: Clone {
 
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
@@ -510,13 +513,13 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 // Math operators
 //  Negation
 impl<T, const N: usize> Neg for PointND<T, N>
-    where T: Clone + Copy + Neg<Output = T> {
+    where T: Clone + Neg<Output = T> {
 
     type Output = Self;
     fn neg(self) -> Self::Output {
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = -arr[i]
+            arr[i] = -arr[i].clone();
         }
 
         PointND::new(arr)
@@ -526,13 +529,13 @@ impl<T, const N: usize> Neg for PointND<T, N>
 
 //  Arithmetic
 impl<T, const N: usize> Add for PointND<T, N>
-    where T: Add<Output = T> + Clone + Copy  {
+    where T: Add<Output = T> + Clone  {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = arr[i] + rhs[i];
+            arr[i] = arr[i].clone() + rhs[i].clone();
         }
 
         PointND::new(arr)
@@ -540,13 +543,13 @@ impl<T, const N: usize> Add for PointND<T, N>
 
 }
 impl<T, const N: usize> Sub for PointND<T, N>
-    where T: Sub<Output = T> + Clone + Copy {
+    where T: Sub<Output = T> + Clone {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = arr[i] - rhs[i];
+            arr[i] = arr[i].clone() - rhs[i].clone();
         }
 
         PointND::new(arr)
@@ -554,13 +557,13 @@ impl<T, const N: usize> Sub for PointND<T, N>
 
 }
 impl<T, const N: usize> Mul for PointND<T, N>
-    where T: Mul<Output = T> + Clone + Copy {
+    where T: Mul<Output = T> + Clone {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = arr[i] * rhs[i];
+            arr[i] = arr[i].clone() * rhs[i].clone();
         }
 
         PointND::new(arr)
@@ -573,13 +576,13 @@ impl<T, const N: usize> Mul for PointND<T, N>
  Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> Div for PointND<T, N>
-    where T: Div<Output = T> + Clone + Copy {
+    where T: Div<Output = T> + Clone {
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
         let mut arr = self.into_arr();
         for i in 0..N {
-            arr[i] = arr[i] / rhs[i];
+            arr[i] = arr[i].clone() / rhs[i].clone();
         }
 
         PointND::new(arr)
@@ -589,31 +592,31 @@ impl<T, const N: usize> Div for PointND<T, N>
 
 // Arithmetic Assign
 impl<T, const N: usize> AddAssign for PointND<T, N>
-    where T: AddAssign + Clone + Copy {
+    where T: AddAssign + Clone {
 
     fn add_assign(&mut self, rhs: Self) {
         for i in 0..N {
-            self[i] += rhs[i];
+            self[i] += rhs[i].clone();
         }
     }
 
 }
 impl<T, const N: usize> SubAssign for PointND<T, N>
-    where T: SubAssign + Clone + Copy {
+    where T: SubAssign + Clone {
 
     fn sub_assign(&mut self, rhs: Self) {
         for i in 0..N {
-            self[i] -= rhs[i];
+            self[i] -= rhs[i].clone();
         }
     }
 
 }
 impl<T, const N: usize> MulAssign for PointND<T, N>
-    where T: MulAssign + Clone + Copy {
+    where T: MulAssign + Clone {
 
     fn mul_assign(&mut self, rhs: Self) {
         for i in 0..N {
-            self[i] *= rhs[i];
+            self[i] *= rhs[i].clone();
         }
     }
 
@@ -624,11 +627,11 @@ impl<T, const N: usize> MulAssign for PointND<T, N>
  Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> DivAssign for PointND<T, N>
-    where T: DivAssign + Clone + Copy {
+    where T: DivAssign + Clone {
 
     fn div_assign(&mut self, rhs: Self) {
         for i in 0..N {
-            self[i] /= rhs[i];
+            self[i] /= rhs[i].clone();
         }
     }
 
@@ -639,7 +642,7 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
 /// ### 1D
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
-    where T: Clone + Copy  {
+    where T: Clone  {
 
     pub fn x(&self) -> &T { &self[0] }
 
@@ -649,7 +652,7 @@ impl<T> PointND<T, 1>
 /// ### 2D
 /// Functions for safely getting and setting the values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
-    where T: Clone + Copy  {
+    where T: Clone  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -661,7 +664,7 @@ impl<T> PointND<T, 2>
 /// ### 3D
 /// Functions for safely getting and setting the values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
-    where T: Clone + Copy  {
+    where T: Clone  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -675,7 +678,7 @@ impl<T> PointND<T, 3>
 /// ### 4D
 /// Functions for safely getting and setting the values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
-    where T: Clone + Copy  {
+    where T: Clone  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -883,12 +886,12 @@ mod tests {
 
             let arr = [0, 1, 2, 3];
 
-            let p = PointND::<u8, 4>::from(&arr);
+            let p = PointND::<u8, 4>::from_slice(&arr);
             for (i, item) in p.iter().enumerate() {
                 assert_eq!(arr[i], *item);
             }
 
-            let mut p = PointND::<u8, 4>::from(&arr);
+            let mut p = PointND::<u8, 4>::from_slice(&arr);
             for item in p.iter_mut() {
                 *item = 10;
             }
@@ -919,7 +922,7 @@ mod tests {
         #[test]
         fn from_works() {
             let arr = [0.0, 0.1, 0.2];
-            let p = PointND::<f64, 3>::from(&arr);
+            let p = PointND::<f64, 3>::from_slice(&arr);
             for i in 0..p.dims() {
                 assert_eq!(arr[i], p[i]);
             }
@@ -927,7 +930,7 @@ mod tests {
         #[test]
         #[should_panic]
         fn from_cannot_construct_with_zero_dimensions() {
-            PointND::<i32, 0>::from(&[]);
+            PointND::<i32, 0>::from_slice(&[]);
         }
 
         #[test]
@@ -956,7 +959,7 @@ mod tests {
             let arr = [0,1,2,3];
 
             let p = PointND::<u8, 4>
-                ::from(&arr)
+                ::new(arr)
                 .apply(|a| Ok( a * 2 ))
                 .unwrap();
 
