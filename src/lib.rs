@@ -8,7 +8,7 @@ See the ```PointND``` struct for basic usage
 
  */
 
-use std::{
+use core::{
     ops::{
         Deref, DerefMut,
         Add, Sub, Mul, Div,
@@ -22,16 +22,17 @@ use std::{
 
 The whole _point_ of the crate
 
-Think of this as an array with convenience methods for accessing values if it's dimensions are
-within ```1..=4```, i.e - all methods implemented for arrays are available with this
+The ```PointND``` struct is really a boxed array convenience methods for accessing, setting and transforming values
+
+Therefore, all methods implemented for arrays are available with this
 
 # Making a Point
 
 ```
 # use point_nd::PointND;
 // Creating a 2D point from a given array
-let arr: [i32; 2] = [0,1];
-let p: PointND<_, 2> = PointND::new(arr);
+let arr = [0, 1];
+let p: PointND<i32, 2> = PointND::new(arr);
 
 // Creating a 3D point from values of a given slice
 let vec: Vec<i32> = vec![0, 1, 2];
@@ -265,35 +266,6 @@ impl<T, const N: usize> PointND<T, N>
      */
     pub fn dims(&self) -> usize {
         self.len()
-    }
-
-
-    /**
-     Safe method of setting values
-
-     Sets value at index ```i``` to ```new_val``` and returns ```Ok```. If the index specified was out of range, does nothing and returns ```Err```
-
-     This is probably only useful if dealing with ```PointND```'s of differing dimensions at once
-     ```
-     # use point_nd::PointND;
-     let mut p = PointND::new([0,1]);
-
-     // Setting an item within bounds, returns Ok
-     let result = p.set(0, 21);
-     assert!(result.is_ok());
-
-     // Setting an item out of bounds, returns Err
-     let result = p.set(1000000, 4);
-     assert!(result.is_err());
-     ```
-     */
-    pub fn set(&mut self, i: usize, new_val: T) -> Result<(), ()> {
-        if self.dims() < i {
-            return Err(())
-        }
-
-        self[i] = new_val;
-        Ok(())
     }
 
 
@@ -590,7 +562,7 @@ impl<T, const N: usize> Div for PointND<T, N>
 
 }
 
-// Arithmetic Assign
+//  Arithmetic Assign
 impl<T, const N: usize> AddAssign for PointND<T, N>
     where T: AddAssign + Clone {
 
@@ -642,7 +614,7 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
 /// ### 1D
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
-    where T: Clone  {
+    where T: Clone {
 
     pub fn x(&self) -> &T { &self[0] }
 
@@ -652,7 +624,7 @@ impl<T> PointND<T, 1>
 /// ### 2D
 /// Functions for safely getting and setting the values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
-    where T: Clone  {
+    where T: Clone {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -664,7 +636,7 @@ impl<T> PointND<T, 2>
 /// ### 3D
 /// Functions for safely getting and setting the values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
-    where T: Clone  {
+    where T: Clone {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -678,7 +650,7 @@ impl<T> PointND<T, 3>
 /// ### 4D
 /// Functions for safely getting and setting the values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
-    where T: Clone  {
+    where T: Clone {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -1000,15 +972,22 @@ mod tests {
         }
 
         #[test]
-        fn cannot_set_out_of_bounds_index() {
+        fn getting_clone_item() {
 
-            let arr = [0,-1,2,-3];
-            let mut p = PointND::new(arr);
+            #[derive(Clone, Debug, Eq, PartialEq)]
+            struct CloneItem;
 
-            let err = p.set(100, 100);
+            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+            struct CopyItem;
 
-            assert_eq!(err, Err(()));
-            assert_eq!(p.into_arr(), arr);
+            let p = PointND::new([CloneItem, CloneItem, CloneItem]);
+            let x_conv = p.x();
+            let x_indx= &p[0];
+
+            let p = PointND::new([CopyItem; 3]);
+            let y_conv = p.y();
+            let y_indx = p[1];
+
         }
 
     }
@@ -1158,22 +1137,15 @@ mod tests {
         fn getter_for_1d_points_work() {
             let arr = [0];
             let p = PointND::new(arr);
-
             assert_eq!(*p.x(), arr[0]);
         }
         #[test]
-        fn setter_for_1d_points_work() -> Result<(), ()> {
+        fn setter_for_1d_points_work() {
 
             let old_vals = [0];
             let new_vals = [4];
             let mut p = PointND::new(old_vals);
 
-            for i in 0..p.dims() {
-                p.set(i, new_vals[i])?;
-                assert_eq!(p[i], new_vals[i]);
-            }
-
-            Ok(())
         }
 
         #[test]
@@ -1185,18 +1157,12 @@ mod tests {
             assert_eq!(*p.y(), arr[1]);
         }
         #[test]
-        fn setters_for_2d_points_work() -> Result<(), ()> {
+        fn setters_for_2d_points_work() {
 
             let old_vals = [0,1];
             let new_vals = [4,5];
             let mut p = PointND::new(old_vals);
 
-            for i in 0..p.dims() {
-                p.set(i, new_vals[i])?;
-                assert_eq!(p[i], new_vals[i]);
-            }
-
-            Ok(())
         }
 
         #[test]
@@ -1209,18 +1175,12 @@ mod tests {
             assert_eq!(*p.z(), arr[2]);
         }
         #[test]
-        fn setters_for_3d_points_work() -> Result<(), ()> {
+        fn setters_for_3d_points_work() {
 
             let old_vals = [0,1,2];
             let new_vals = [4,5,6];
             let mut p = PointND::new(old_vals);
 
-            for i in 0..p.dims() {
-                p.set(i, new_vals[i])?;
-                assert_eq!(p[i], new_vals[i]);
-            }
-
-            Ok(())
         }
 
         #[test]
@@ -1234,18 +1194,12 @@ mod tests {
             assert_eq!(*p.w(), arr[3]);
         }
         #[test]
-        fn setters_for_4d_points_work() -> Result<(), ()> {
+        fn setters_for_4d_points_work() {
 
             let old_vals = [0,1,2,3];
             let new_vals = [4,5,6,7];
             let mut p = PointND::new(old_vals);
 
-            for i in 0..p.dims() {
-                p.set(i, new_vals[i])?;
-                assert_eq!(p[i], new_vals[i]);
-            }
-
-            Ok(())
         }
 
     }
