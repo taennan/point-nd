@@ -23,11 +23,17 @@ use core::{
 
 The whole _point_ of the crate.
 
-The ```PointND``` struct is really a boxed array with convenience methods for accessing, setting and transforming values.
+The ```PointND``` struct is really a boxed array with
+convenience methods for accessing, setting and transforming values.
 
 Therefore, all methods implemented for arrays are available with this.
 
 # Making a Point
+
+There are three ```PointND``` constructors, ```new```, ```from_slice``` and ```fill```.
+
+The ```from_slice``` and ```fill``` functions can only be used
+if creating a point where the items implement ```Copy```
 
 ```
 # use point_nd::PointND;
@@ -42,140 +48,151 @@ let p: PointND<_, 3> = PointND::from_slice(&vec);
 // Creating a 4D point with all values set to 5
 let p: PointND<i32, 4> = PointND::fill(5);
 
-// The second generic arg is a usize constant generic and for the ::fill()
-//  and ::from_slice() functions, specifying it is sometimes necessary
-// If you don't like writing PointND twice for type annotation,
-//  use FQS (fully qualified syntax) instead:
-let p = PointND::<_, 4>::fill(5);
-
 // Trying to create a PointND with zero dimensions using
 //  any of the above will panic at runtime
 // ERROR: Can't create a point with zero dimensions
-//  let p: PointND<_, 0> = PointND::new([]);
+// let p: PointND<_, 0> = PointND::new([]);
 ```
 
-# Getting and Setting Values
+The second generic arg is a ```usize``` constant generic and for the ```fill()```
+and ```from_slice()``` functions, specifying it is sometimes necessary when the
+compiler cannot infer it itself.
 
-If the dimensions of the point are within ```1..=4```, it is recommended to use the convenience getters and setters
+See their documentation for cases when explicit types are not necessary
+
+Otherwise, if you don't like writing ```PointND``` twice for type
+annotation, use FQS (_fully qualified syntax_) instead:
 
 ```
 # use point_nd::PointND;
-let arr = [0,1];
-let p: PointND<_, 2> = PointND::new(arr);
+let p1 = PointND::<_, 4>::from_slice(&vec![5,5,5,5]);
+let p2 = PointND::<_, 4>::fill(5);
+
+assert_eq!(p1, p2);
+```
+
+# Getting Values
+
+If the dimensions of the point are within ```1..=4```, it is recommended to
+use the convenience getters ```x()```, ```y()```, ```z()``` and ```w()```
+
+The above all return references to the value, regardless of whether they implement ```Copy```
+
+```
+# use point_nd::PointND;
+let p = PointND::new([0,1]);
 
 // As the point has 2 dimensions, we can access
 //  it's values with the x() and y() methods
 let x: &i32 = p.x();
-assert_eq!(*x, arr[0]);
+assert_eq!(*x, 0);
 let y = p.y();
-assert_eq!(*y, arr[1]);
+assert_eq!(*y, 1);
 
 // If the point had 3 dimensions, we could use the above and:
 //  let z = p.z();
 // Or with 4 dimensions, the above and:
 //  let w = p.w();
-
-// Setting values is just as simple
-let mut p = PointND::new(arr);
-p.set_x(101);
-assert_eq!(*p.x(), 101);
-
-// As with the getters, there are respective methods for setting the
-//  values at y, z and w depending on the dimensions of the point
 ```
 
-Alternatively, since ```PointND``` implements ```Deref```, all methods of getting and setting array elements can work as well
+The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
 
-These are the only methods available for ```PointND```'s with dimensions **not** within ```1..=4```
+Instead, we must use the native implementations of the contained array
 
-Their use can be made easier using the dimension macros: ```dim```, ```dims``` and ```dimr``` (see their documentation for more info)
-
-```
+```rust
 # use point_nd::PointND;
-// A 5D point, cannot use any of the convenience methods
-let arr = [-2, -1, 0, 1, 2];
-let mut p = PointND::new(arr);
+# use point_nd::{dim, dimr};
+let p = PointND::new([0,1,2,3,4,5]);
 
-// ERROR: Not implemented for PointND<i32, 5>
-// let x = p.x()
-// ...
-// let w = p.w();
-
-// Instead use these deref array methods:
-//  Safely getting
-let x: Option<&i32> = p.get(0);
-assert_eq!(*x.unwrap(), arr[0]);
+// ERROR: Not implemented for PointND of 6 dimensions
+// let x = p.x();
 
 // Indexing
-let y: i32 = p[1];
-assert_eq!(y, arr[1]);
+let x: i32 = p[0];
+assert_eq!(x, 0);
+
+// Safely Getting
+let y: Option<&i32> = p.get(1);
+assert_eq!(*y.unwrap(), 1);
 
 // Slicing
 let z_to_last: &[i32] = &p[2..];
-assert_eq!(z_to_last, [0,1,2]);
+assert_eq!(z_to_last, [2,3,4,5]);
 
-// Setting via Indexing
-p[1] = 345;
-assert_eq!(p[1], 345);
+// The dimension macros provided by this crate can make
+//  direct indexing easier and more readable
+// See their documentation for more info
+let w = p[dim!(z)];
+let the_rest = &p[dimr!(w..)];
+```
+
+To get all the values contained by a point, use the ```into_arr()``` method
+
+```
+# use point_nd::PointND;
+let p = PointND::new([-10, -2, 0, 2, 10]);
+assert_eq!(p.into_arr(), [-10, -2, 0, 2, 10])
 ```
 
 # Querying Size
 
-The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_)
+The number of dimensions can be retrieved using
+the ```dims()``` method (short for _dimensions_)
 
 ```
 # use point_nd::PointND;
 let p: PointND<i32, 2> = PointND::new([0,1]);
 assert_eq!(p.dims(), 2);
+
 // Alternatively, as PointND implements Deref, we can use len().
-// It's name isn't as descriptive however
+// It's not as descriptive however...
 assert_eq!(p.len(), 2);
 ```
 
-# Iterating
+# Transforming Values
 
-Iterating over a ```PointND``` is as easy as:
-
-```
-# use point_nd::PointND;
-let mut p = PointND::new([0,1]);
-
-for _ in p.iter()      { /* Do stuff */ }
-for _ in p.iter_mut()  { /* Change stuff */ }
-for _ in p.into_iter() { /* Do more stuff */ }
-```
-
-It must be noted that due to the ```Copy``` trait bounds of the items contained by a ```PointND```,
-using ```into_iter()``` will not actually move the point as we are actually iterating over the contained
-array via the ```Deref``` trait.
+If the dimensions of the point are within ```1..=4```,
+it is recommended to use the convenience setters
 
 ```
 # use point_nd::PointND;
-# let mut p = PointND::new([0,1]);
-// The point 'p' is still usable after the call to into_iter()
-assert_eq!(p.dims(), 2);
+let mut p = PointND::new([0, 1]);
+
+// As the point has 2 dimensions, we can set
+//  it's values with the set_x() and set_y() methods
+// There are set_z() and set_w() methods available for
+//  points with 3 and 4 dimensions respectively
+p.set_x(-10);
+p.set_y(-20);
+
+assert_eq!(*p.x(), -10);
+assert_eq!(*p.y(), -20);
 ```
 
-If destroying innocent points is your thing however, using ```into_arr()``` or ```into_vec()``` to
-consume the point before iterating will move it out of scope
+The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
+
+Instead, we must use the native implementations of the contained array
 
 ```
 # use point_nd::PointND;
-# let mut p = PointND::new([0,1]);
-for _ in p.into_vec().into_iter() { /* Take stuff */ }
+# use point_nd::dim;
+let mut p = PointND::new([0, 1]);
 
-// ERROR: Can't access moved value
-// assert_eq!(p.dims(), 2);
+// Sets x via indexing
+p[0] = -100;
+assert_eq!(*p.x(), -100);
+
+// Sets y via indexing and dimension macros
+p[dim!(y)] = -100;
+assert_eq!(*p.x(), *p.y());
 ```
-
-# Transforming Points
 
 ### Appliers
 
-The ```apply```, ```apply_vals```, ```apply_dims``` and ```apply_point``` (henceforth referred to as _appliers_)
-methods all consume self and return a new point after applying a function to all contained values
+The ```apply```, ```apply_vals```, ```apply_dims``` and ```apply_point``` methods all
+consume self and return a new point after calling a function or closure on all contained values
 
-Multiple appliers can be chained together to make complex transformations to a ```PointND```
+Multiple applier methods can be chained together to make complex transformations to a ```PointND```
 
 This is probably best explained with an example:
 
@@ -193,15 +210,12 @@ assert_eq!(p.into_arr(), [6, 9, 12]);
 # }
 ```
 
-### Creating a Function to Pass to Appliers
+The function or closure passed to the applier methods must all return a ```Result<T, ()>```
+(where ```T``` is the type of the items contained by the point) to allow graceful error
+handling by the applier instead of just panicking.
 
-The function or closure passed to the applier methods (henceforth referred to as _modifiers_)
-accept either one or two args of type ```T``` (where ```T``` is the type of the items contained
-by the point) depending on whether one or two sets of values are being modified.
-
-Modifiers must all return a ```Result<T, ()>``` to allow graceful error handling by the applier instead of just panicking.
-
-If an ```Err``` is returned by the modifier when called on any item, the applier returns an ```Err(())```
+If an ```Err(())``` is thrown by the closure when called
+on any item, the applier also returns ```Err(())```
 
 If all goes well, the applier returns an ```Ok``` with the new ```PointND``` as it's value
 
@@ -210,7 +224,8 @@ Hopefully the above wasn't confusing, but here's an example just in case:
 ```
 # use point_nd::PointND;
 # fn modifier_creation_example() -> Result<(), ()> {
-// Dividing by zero causes a runtime error, so we return an Err if the second arg is zero
+// Dividing by zero causes a runtime error,
+//  so we return an Err if the second arg is zero
 let divide_items = |a: f32, b: f32| -> Result<f32, ()> {
     if b == 0.0 {
         Err(())
@@ -230,10 +245,38 @@ assert!(result.is_ok());
 
 // Divides each item in p1 with each in zero_point
 let result = p1.apply_point(zero_point, divide_items);
-// Error is thrown by divide_items, causing apply_point() to throw error
+// Error is thrown by divide_items, causing apply_point() to throw
 assert!(result.is_err());
 # Ok(())
 # }
+```
+
+# Iterating
+
+Iterating over a ```PointND``` is as easy as:
+
+```rust
+# use point_nd::PointND;
+let mut p = PointND::new([0,1]);
+
+for _ in p.iter()      { /* Do stuff     */ }
+for _ in p.iter_mut()  { /* Change stuff */ }
+for _ in p.into_iter() { /* Move stuff (unless items implement Copy) */ }
+```
+
+It must be noted that if the items implement ```Copy```, using
+```into_iter()``` will not actually move the point out of scope.
+
+If this behaviour is necessary, use the ```into_arr()``` method
+to consume the point and move the contained array into the loop
+
+```
+# use point_nd::PointND;
+# let mut p = PointND::new([0,1]);
+for _ in p.into_arr().into_iter() { /* Move stuff */ }
+
+// ERROR: Can't access moved value
+// assert_eq!(p.dims(), 2);
 ```
  */
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -300,15 +343,15 @@ impl<T, const N: usize> PointND<T, N>
     /**
      Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
 
-     Any items at dimensions not specified will be passed to the new point as is
+     Any items at dimensions not specified will be passed to the new point without change
      ```
      # use point_nd::PointND;
      # fn apply_dims_example() -> Result<(), ()> {
      let p = PointND
-         ::new([0,1,2,3])                              // Creates a new PointND
+         ::new([0,1,2,3,4])                            // Creates a new PointND
          .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
          .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
-     assert_eq!(p.into_arr(), [10, 2, 20, 6]);
+     assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
      # Ok(())
      # }
      ```
@@ -346,10 +389,9 @@ impl<T, const N: usize> PointND<T, N>
      ```
      */
     pub fn apply_vals<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
-        where
-            F: Fn(T, X) -> Result<T, ()>,
-            X: Clone
-    {
+        where F: Fn(T, X) -> Result<T, ()>,
+              X: Clone {
+
         let mut arr = self.into_arr();
         for i in 0..N {
             arr[i] = modifier(arr[i].clone(), values[i].clone())?;
@@ -384,15 +426,9 @@ impl<T, const N: usize> PointND<T, N>
         self.apply_vals(other.into_arr(), modifier)
     }
 
-
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
         self.0
-    }
-
-    /// Consumes ```self```, returning the contained array as a vector
-    pub fn into_vec(self) -> Vec<T> {
-        Vec::from(&self[..])
     }
 
 }

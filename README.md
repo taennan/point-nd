@@ -28,8 +28,7 @@ If the dimensions of the point are within ```1..=4```, it is
 recommended to use the convenience getters for accessing values.
 
 ```rust
-let arr = [0, 1];
-let p = PointND::new(arr);
+let p = PointND::new([0, 1]);
 
 // As the point has 2 dimensions, we can access
 //  it's values with the x() and y() methods
@@ -49,8 +48,7 @@ The above methods are not implemented for PointND's with more than 4 dimensions.
 We must use indexing instead.
 
 ```rust
-let arr = [0,1,2,3,4,5];
-let p = PointND::new(arr);
+let p = PointND::new([0,1,2,3,4,5]);
 
 // ERROR: Not implemented for PointND of 6 dimensions
 // let x = p.x();
@@ -68,8 +66,7 @@ let the_rest = p[dimr!(w..)];
 To get the dimensions of a point, use the ```dims()``` method.
 
 ```rust
-let arr = [0, 1, 2, 3];
-let p = PointND::new(arr);
+let p = PointND::new([0, 1, 2, 3]);
 
 let dims: usize = p.dims();
 assert_eq!(dims, 4);
@@ -81,8 +78,7 @@ If the dimensions of the point are within ```1..=4```, it is
 recommended to use the convenience setters for setting values.
 
 ```rust
-let arr = [0, 1];
-let mut p = PointND::new(arr);
+let mut p = PointND::new([0, 1]);
 
 // As the point has 2 dimensions, we can set
 //  it's values with the set_x() and set_y() methods
@@ -97,8 +93,7 @@ The above methods are not implemented for PointND's with more than 4 dimensions.
 We must use indexing instead.
 
 ```rust
-let arr = [0,1,2,3,4];
-let p = PointND::new(arr);
+let p = PointND::new([0,1,2,3,4]);
 
 // ERROR: Not implemented for PointND of 5 dimensions
 // p.set_x(1200);
@@ -152,7 +147,7 @@ for _ in p.into_iter() { /* Move stuff (unless items implement Copy) */ }
 
 Any suggestions for the codebase, documentation, README (or anything) are more than welcome!
 
-If there are any problems, please submit an issue on our Github page
+If there are any problems, please submit an issue on our Github page.
 
 ## License
 
