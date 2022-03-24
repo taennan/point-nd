@@ -1,4 +1,6 @@
 
+# Changelog
+
 ## 0.5.0
 
 - Removed compulsory ```Copy``` trait bounds
@@ -7,10 +9,3 @@
 - Changed generics in ```apply_vals()``` method to accept any type that implements ```Clone```
 - Removed ```into_vec()``` method for ```no_std``` compatibility
 
-## 0.4.0
-
-## 0.3.0
-
-## 0.2.0
-
-## 0.1.0

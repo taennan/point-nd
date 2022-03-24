@@ -1,13 +1,15 @@
 
 # PointND
 
-A simple and flexible data structure for modelling points of **any** dimensions on an axis.
+A simple and flexible data structure for modelling points of 
+**any** dimensions on an axis **without** the standard library.
 
-This crate uses constant generics, it is recommended for use with a rust version **>= 1.51**.
+This crate uses constant generics, it is recommended 
+for use with a Rust version **>= 1.51**.
 
 ## Basic Usage
 
-### Constructing a Point
+### Making a Point
 
 ```rust
 // Creating a 2D point from a given array
@@ -147,7 +149,7 @@ for _ in p.into_iter() { /* Move stuff (unless items implement Copy) */ }
 
 Any suggestions for the codebase, documentation, README (or anything) are more than welcome!
 
-If there are any problems, please submit an issue on our Github page.
+If there are any problems or queries, please submit an issue on our Github page.
 
 ## License
 
