@@ -1,3 +1,4 @@
+#![no_std]
 /*!
 
 A simple and flexible multidimensional point struct, based on an array.
