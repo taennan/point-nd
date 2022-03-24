@@ -344,9 +344,11 @@ impl<T, const N: usize> PointND<T, N>
      # }
      ```
      */
-    pub fn apply_vals<F>(self, values: [T; N], modifier: F) -> Result<Self, ()>
-        where F: Fn(T, T) -> Result<T, ()> {
-
+    pub fn apply_vals<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
+        where
+            F: Fn(T, X) -> Result<T, ()>,
+            X: Clone
+    {
         let mut arr = self.into_arr();
         for i in 0..N {
             arr[i] = modifier(arr[i].clone(), values[i].clone())?;
@@ -382,24 +384,9 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
-    // TEST
-    pub fn apply_test<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
-        where
-            F: Fn(T, X) -> Result<T, ()>,
-            X: Clone
-    {
-        let mut arr = self.into_arr();
-        for i in 0..N {
-            arr[i] = modifier(arr[i].clone(), values[i].clone())?;
-        }
-
-        Ok( PointND::new(arr) )
-    }
-
-
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
-        self.0.clone()
+        self.0
     }
 
     /// Consumes ```self```, returning the contained array as a vector
@@ -947,16 +934,24 @@ mod tests {
                 .apply(|a| Ok( a * 2 ))
                 .unwrap();
 
-            for (a, b) in arr.iter().zip(p.iter()) {
-                assert_eq!(*a * 2, *b);
-            }
+            assert_eq!(p.into_arr(), [0, 2, 4, 6]);
+        }
+
+        #[test]
+        fn can_apply_dims() {
+
+            let p = PointND::new([-2,-1,0,1,2])
+                .apply_dims(&dims![x, w], |item| {
+                    Ok( item - 10 )
+                }).unwrap();
+            assert_eq!(p.into_arr(), [-12,-1, 0, -9, 2]);
         }
 
         #[test]
         fn can_apply_vals() {
 
             let p = PointND::new([0,1,2])
-                .apply_test(
+                .apply_vals(
                     [Some(10), None, Some(20)],
                     |a, b| {
                         if let Some(i) = b {
@@ -970,13 +965,12 @@ mod tests {
         }
 
         #[test]
-        fn can_apply_dims() {
+        fn can_apply_point() {
 
-            let p = PointND::new([-2,-1,0,1,2])
-                .apply_dims(&dims![x, w], |item| {
-                    Ok( item - 10 )
-                }).unwrap();
-            assert_eq!(p.into_arr(), [-12,-1, 0, -9, 2]);
+            let p1 = PointND::new([0, 1, 2, 3]);
+            let p2 = PointND::new([0, -1, -2, -3]);
+            let p3 = p1.apply_point(p2, |a, b| Ok( a - b )).unwrap();
+            assert_eq!(p3.into_arr(), [0, 2, 4, 6]);
         }
 
     }
