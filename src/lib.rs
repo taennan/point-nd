@@ -2,7 +2,7 @@
 
 A simple and flexible multidimensional point struct, based on an array.
 
-This crate uses constant generics, it is recommended for use with a rust version **>= 1.51**
+This crate uses constant generics, it is recommended for use with a rust version **>= 1.51**.
 
 See the ```PointND``` struct for basic usage
 
@@ -11,6 +11,7 @@ See the ```PointND``` struct for basic usage
 use core::{
     ops::{
         Deref, DerefMut,
+        Index,
         Add, Sub, Mul, Div,
         AddAssign, SubAssign, MulAssign, DivAssign,
         Neg
@@ -20,11 +21,11 @@ use core::{
 
 /**
 
-The whole _point_ of the crate
+The whole _point_ of the crate.
 
-The ```PointND``` struct is really a boxed array convenience methods for accessing, setting and transforming values
+The ```PointND``` struct is really a boxed array with convenience methods for accessing, setting and transforming values.
 
-Therefore, all methods implemented for arrays are available with this
+Therefore, all methods implemented for arrays are available with this.
 
 # Making a Point
 
@@ -41,14 +42,15 @@ let p: PointND<_, 3> = PointND::from_slice(&vec);
 // Creating a 4D point with all values set to 5
 let p: PointND<i32, 4> = PointND::fill(5);
 
-// The second generic arg is a usize constant and for the ::fill()
+// The second generic arg is a usize constant generic and for the ::fill()
 //  and ::from_slice() functions, specifying it is sometimes necessary
 // If you don't like writing PointND twice for type annotation,
 //  use FQS (fully qualified syntax) instead:
 let p = PointND::<_, 4>::fill(5);
 
-// Trying to create a PointND with zero dimensions using the above will panic at runtime
-//  ERROR: Can't create a point with zero dimensions
+// Trying to create a PointND with zero dimensions using
+//  any of the above will panic at runtime
+// ERROR: Can't create a point with zero dimensions
 //  let p: PointND<_, 0> = PointND::new([]);
 ```
 
@@ -241,7 +243,7 @@ pub struct PointND<T, const N: usize>([T; N])
 // When items implement at least Clone
 impl<T, const N: usize> PointND<T, N>
     where T: Clone {
-    
+
     /**
      Returns a new ```PointND``` with values from the specified array
 
@@ -481,7 +483,6 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
 
 }
 
-
 // Math operators
 //  Negation
 impl<T, const N: usize> Neg for PointND<T, N>
@@ -611,7 +612,7 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
 
 
 // Convenience Getters and Setters
-/// ### 1D
+//  Where items implement Clone
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
     where T: Clone {
@@ -621,7 +622,6 @@ impl<T> PointND<T, 1>
     pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
 
 }
-/// ### 2D
 /// Functions for safely getting and setting the values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
     where T: Clone {
@@ -633,7 +633,6 @@ impl<T> PointND<T, 2>
     pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
 
 }
-/// ### 3D
 /// Functions for safely getting and setting the values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
     where T: Clone {
@@ -647,7 +646,6 @@ impl<T> PointND<T, 3>
     pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
 
 }
-/// ### 4D
 /// Functions for safely getting and setting the values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
     where T: Clone {
@@ -661,6 +659,42 @@ impl<T> PointND<T, 4>
     pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
     pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
     pub fn set_w(&mut self, new_value: T) { self[3] = new_value; }
+
+}
+
+//  Where items implement Clone + Copy
+/// Function for safely getting the value contained by a 1D ```PointND```
+impl<T> PointND<T, 1>
+    where T: Clone + Copy {
+
+    pub fn x(&self) -> T { self[0] }
+
+}
+/// Functions for safely getting the values contained by a 2D ```PointND```
+impl<T> PointND<T, 2>
+    where T: Clone + Copy {
+
+    pub fn x(&self) -> T { self[0] }
+    pub fn y(&self) -> T { self[1] }
+
+}
+/// Functions for safely getting the values contained by a 3D ```PointND```
+impl<T> PointND<T, 3>
+    where T: Clone + Copy {
+
+    pub fn x(&self) -> T { self[0] }
+    pub fn y(&self) -> T { self[1] }
+    pub fn z(&self) -> T { self[2] }
+
+}
+/// Functions for safely getting the values contained by a 4D ```PointND```
+impl<T> PointND<T, 4>
+    where T: Clone + Copy {
+
+    pub fn x(&self) -> T { self[0] }
+    pub fn y(&self) -> T { self[1] }
+    pub fn z(&self) -> T { self[2] }
+    pub fn w(&self) -> T { self[3] }
 
 }
 
