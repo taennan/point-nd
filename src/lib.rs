@@ -11,7 +11,6 @@ See the ```PointND``` struct for basic usage
 use core::{
     ops::{
         Deref, DerefMut,
-        Index,
         Add, Sub, Mul, Div,
         AddAssign, SubAssign, MulAssign, DivAssign,
         Neg
@@ -383,9 +382,24 @@ impl<T, const N: usize> PointND<T, N>
     }
 
 
+    // TEST
+    pub fn apply_test<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
+        where
+            F: Fn(T, X) -> Result<T, ()>,
+            X: Clone
+    {
+        let mut arr = self.into_arr();
+        for i in 0..N {
+            arr[i] = modifier(arr[i].clone(), values[i].clone())?;
+        }
+
+        Ok( PointND::new(arr) )
+    }
+
+
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
-        self.0
+        self.0.clone()
     }
 
     /// Consumes ```self```, returning the contained array as a vector
@@ -659,42 +673,6 @@ impl<T> PointND<T, 4>
     pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
     pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
     pub fn set_w(&mut self, new_value: T) { self[3] = new_value; }
-
-}
-
-//  Where items implement Clone + Copy
-/// Function for safely getting the value contained by a 1D ```PointND```
-impl<T> PointND<T, 1>
-    where T: Clone + Copy {
-
-    pub fn x(&self) -> T { self[0] }
-
-}
-/// Functions for safely getting the values contained by a 2D ```PointND```
-impl<T> PointND<T, 2>
-    where T: Clone + Copy {
-
-    pub fn x(&self) -> T { self[0] }
-    pub fn y(&self) -> T { self[1] }
-
-}
-/// Functions for safely getting the values contained by a 3D ```PointND```
-impl<T> PointND<T, 3>
-    where T: Clone + Copy {
-
-    pub fn x(&self) -> T { self[0] }
-    pub fn y(&self) -> T { self[1] }
-    pub fn z(&self) -> T { self[2] }
-
-}
-/// Functions for safely getting the values contained by a 4D ```PointND```
-impl<T> PointND<T, 4>
-    where T: Clone + Copy {
-
-    pub fn x(&self) -> T { self[0] }
-    pub fn y(&self) -> T { self[1] }
-    pub fn z(&self) -> T { self[2] }
-    pub fn w(&self) -> T { self[3] }
 
 }
 
@@ -974,6 +952,33 @@ mod tests {
             }
         }
 
+        #[test]
+        fn can_apply_vals() {
+
+            let p = PointND::new([0,1,2])
+                .apply_test(
+                    [Some(10), None, Some(20)],
+                    |a, b| {
+                        if let Some(i) = b {
+                            Ok(a + i)
+                        } else {
+                            Ok( a )
+                        }
+                    }
+                ).unwrap();
+            assert_eq!(p.into_arr(), [10, 1, 22]);
+        }
+
+        #[test]
+        fn can_apply_dims() {
+
+            let p = PointND::new([-2,-1,0,1,2])
+                .apply_dims(&dims![x, w], |item| {
+                    Ok( item - 10 )
+                }).unwrap();
+            assert_eq!(p.into_arr(), [-12,-1, 0, -9, 2]);
+        }
+
     }
 
     #[cfg(test)]
@@ -984,7 +989,7 @@ mod tests {
         fn can_get_slice_by_range_index() {
             let p = PointND::new([0,1,2,3,4]);
             let slice = &p[0..3];
-            assert_eq!(*slice, [0,1,2]);
+            assert_eq!(slice, [0,1,2]);
         }
 
         #[test]
@@ -1006,22 +1011,95 @@ mod tests {
         }
 
         #[test]
-        fn getting_clone_item() {
+        fn getter_for_1d_points_work() {
+            let arr = [0];
+            let p = PointND::new(arr);
+            assert_eq!(*p.x(), arr[0]);
+        }
+        #[test]
+        fn setter_for_1d_points_work() {
 
-            #[derive(Clone, Debug, Eq, PartialEq)]
-            struct CloneItem;
+            let old_vals = [0];
+            let new_val = 4;
+            let mut p = PointND::new(old_vals);
 
-            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-            struct CopyItem;
+            p.set_x(new_val);
+            assert_eq!(*p.x(), new_val);
+        }
 
-            let p = PointND::new([CloneItem, CloneItem, CloneItem]);
-            let x_conv = p.x();
-            let x_indx= &p[0];
+        #[test]
+        fn getters_for_2d_points_work() {
+            let arr = [0,1];
+            let p = PointND::new(arr);
 
-            let p = PointND::new([CopyItem; 3]);
-            let y_conv = p.y();
-            let y_indx = p[1];
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+        }
+        #[test]
+        fn setters_for_2d_points_work() {
 
+            let old_vals = [0,1];
+            let new_vals = [4,5];
+            let mut p = PointND::new(old_vals);
+
+            p.set_x(new_vals[0]);
+            p.set_y(new_vals[1]);
+
+            assert_eq!(*p.x(), new_vals[0]);
+            assert_eq!(*p.y(), new_vals[1]);
+        }
+
+        #[test]
+        fn getters_for_3d_points_work() {
+            let arr = [0,1,2];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+            assert_eq!(*p.z(), arr[2]);
+        }
+        #[test]
+        fn setters_for_3d_points_work() {
+
+            let old_vals = [0,1,2];
+            let new_vals = [4,5,6];
+            let mut p = PointND::new(old_vals);
+
+            p.set_x(new_vals[0]);
+            p.set_y(new_vals[1]);
+            p.set_z(new_vals[2]);
+
+            assert_eq!(*p.x(), new_vals[0]);
+            assert_eq!(*p.y(), new_vals[1]);
+            assert_eq!(*p.z(), new_vals[2]);
+        }
+
+        #[test]
+        fn getters_for_4d_points_work() {
+            let arr = [0,1,2,3];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+            assert_eq!(*p.z(), arr[2]);
+            assert_eq!(*p.w(), arr[3]);
+        }
+        #[test]
+        fn setters_for_4d_points_work() {
+
+            let old_vals = [0,1,2,3];
+            let new_vals = [4,5,6,7];
+            let mut p = PointND::new(old_vals);
+
+            p.set_x(new_vals[0]);
+            p.set_y(new_vals[1]);
+            p.set_z(new_vals[2]);
+            p.set_w(new_vals[3]);
+
+            assert_eq!(*p.x(), new_vals[0]);
+            assert_eq!(*p.y(), new_vals[1]);
+            assert_eq!(*p.z(), new_vals[2]);
+            assert_eq!(*p.w(), new_vals[3]);
         }
 
     }
@@ -1159,81 +1237,6 @@ mod tests {
             let p2 = PointND::new(arr2);
 
             assert_ne!(p1, p2);
-        }
-
-    }
-
-    #[cfg(test)]
-    mod convenience_methods {
-        use super::*;
-
-        #[test]
-        fn getter_for_1d_points_work() {
-            let arr = [0];
-            let p = PointND::new(arr);
-            assert_eq!(*p.x(), arr[0]);
-        }
-        #[test]
-        fn setter_for_1d_points_work() {
-
-            let old_vals = [0];
-            let new_vals = [4];
-            let mut p = PointND::new(old_vals);
-
-        }
-
-        #[test]
-        fn getters_for_2d_points_work() {
-            let arr = [0,1];
-            let p = PointND::new(arr);
-
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-        }
-        #[test]
-        fn setters_for_2d_points_work() {
-
-            let old_vals = [0,1];
-            let new_vals = [4,5];
-            let mut p = PointND::new(old_vals);
-
-        }
-
-        #[test]
-        fn getters_for_3d_points_work() {
-            let arr = [0,1,2];
-            let p = PointND::new(arr);
-
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-            assert_eq!(*p.z(), arr[2]);
-        }
-        #[test]
-        fn setters_for_3d_points_work() {
-
-            let old_vals = [0,1,2];
-            let new_vals = [4,5,6];
-            let mut p = PointND::new(old_vals);
-
-        }
-
-        #[test]
-        fn getters_for_4d_points_work() {
-            let arr = [0,1,2,3];
-            let p = PointND::new(arr);
-
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-            assert_eq!(*p.z(), arr[2]);
-            assert_eq!(*p.w(), arr[3]);
-        }
-        #[test]
-        fn setters_for_4d_points_work() {
-
-            let old_vals = [0,1,2,3];
-            let new_vals = [4,5,6,7];
-            let mut p = PointND::new(old_vals);
-
         }
 
     }
