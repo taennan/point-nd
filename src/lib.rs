@@ -243,8 +243,8 @@ Hopefully the above wasn't confusing, but here's an example just in case:
 # fn modifier_creation_example() -> Result<(), ()> {
 // Dividing by zero causes a runtime error,
 //  so we return an Err if the second arg is zero
-let divide_items = |a: f32, b: f32| -> Result<f32, ()> {
-    if b == 0.0 {
+let divide_items = |a: &f32, b: &f32| -> Result<f32, ()> {
+    if *b == 0.0 {
         Err(())
     } else {
         Ok( a / b )
@@ -331,6 +331,114 @@ impl<T, const N: usize> PointND<T, N> {
         self.0
     }
 
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
+     ```
+     # use point_nd::PointND;
+     # fn apply_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2])                    // Creates a new PointND
+         .apply(|item| Ok( item + 2 ))?    // Adds 2 to each item
+         .apply(|item| Ok( item * 3 ))?;   // Multiplies each item by 3
+     assert_eq!(p.into_arr(), [6, 9, 12]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply<F>(mut self, modifier: F) -> Result<Self, ()>
+        where F: Fn(&T) -> Result<T, ()> {
+
+        for i in 0..N {
+            self[i] = modifier(&self[i])?;
+        }
+
+        Ok( self )
+    }
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
+
+     Any items at dimensions not specified will be passed to the new point without change
+     ```
+     # use point_nd::PointND;
+     # fn apply_dims_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2,3,4])                            // Creates a new PointND
+         .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
+         .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
+     assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Result<Self, ()>
+        where F: Fn(&T) -> Result<T, ()> {
+
+        for i in 0..N {
+            if dims.contains(&i) {
+                self[i] = modifier(&self[i])?;
+            }
+        }
+
+        Ok( self )
+    }
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained
+     by ```self``` and ```values``` to create a new ```PointND```
+
+     When creating a modifier function to be used by this method, keep in mind that the items in
+     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**
+     ```
+     # use point_nd::PointND;
+     # fn apply_vals_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2])                             // Creates a new PointND
+         .apply_vals([1,3,5], |a, b| Ok( a + b ))?  // Adds items in point to items in array
+         .apply_vals([2,4,6], |a, b| Ok( a * b ))?; // Multiplies items in point
+                                                    //  to items in array
+     assert_eq!(p.into_arr(), [2, 16, 42]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply_vals<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
+        where F: Fn(&T, &X) -> Result<T, ()>  {
+
+        self.apply_point(PointND::new(values), modifier)
+    }
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
+
+     When creating a modifier function to be used by this method, keep in mind that the items in
+     ```self``` are passed to it through the **first arg**, and the items in ```other``` through the **second**
+     ```
+     # use point_nd::PointND;
+     # fn apply_point_example() -> Result<(), ()> {
+     let p1 = PointND::new([0,9,3,1]);
+     let p2 = PointND::fill(10);
+     let p3 = PointND
+         ::new([1,2,3,4])                         // Creates a new PointND
+         .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
+         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the returned point
+                                                  //  with the items in p2
+     assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply_point<F, X>(mut self, other: PointND<X, N>, modifier: F) -> Result<Self, ()>
+        where F: Fn(&T, &X) -> Result<T, ()> {
+
+        for i in 0..N {
+            self[i] = modifier(&self[i], &other[i])?;
+        }
+
+        Ok( self )
+    }
+
 }
 
 impl<T, const N: usize> PointND<T, N>
@@ -400,119 +508,6 @@ impl<T, const N: usize> PointND<T, N>
 
 }
 
-impl<T, const N: usize> PointND<T, N>
-    where T: Clone {
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
-     ```
-     # use point_nd::PointND;
-     # fn apply_example() -> Result<(), ()> {
-     let p = PointND
-         ::new([0,1,2])                    // Creates a new PointND
-         .apply(|item| Ok( item + 2 ))?    // Adds 2 to each item
-         .apply(|item| Ok( item * 3 ))?;   // Multiplies each item by 3
-     assert_eq!(p.into_arr(), [6, 9, 12]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply<F>(mut self, modifier: F) -> Result<Self, ()>
-        where F: Fn(T) -> Result<T, ()> {
-
-        for i in 0..N {
-            self[i] = modifier(self[i].clone())?;
-        }
-
-        Ok( self )
-    }
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
-
-     Any items at dimensions not specified will be passed to the new point without change
-     ```
-     # use point_nd::PointND;
-     # fn apply_dims_example() -> Result<(), ()> {
-     let p = PointND
-         ::new([0,1,2,3,4])                            // Creates a new PointND
-         .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
-         .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
-     assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Result<Self, ()>
-        where F: Fn(T) -> Result<T, ()> {
-
-        for i in 0..N {
-            if dims.contains(&i) {
-                self[i] = modifier(self[i].clone())?;
-            }
-        }
-
-        Ok( self )
-    }
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained
-     by ```self``` and ```values``` to create a new ```PointND```
-
-     When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**
-     ```
-     # use point_nd::PointND;
-     # fn apply_vals_example() -> Result<(), ()> {
-     let p = PointND
-         ::new([0,1,2])                             // Creates a new PointND
-         .apply_vals([1,3,5], |a, b| Ok( a + b ))?  // Adds items in point to items in array
-         .apply_vals([2,4,6], |a, b| Ok( a * b ))?; // Multiplies items in point
-                                                    //  to items in array
-     assert_eq!(p.into_arr(), [2, 16, 42]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply_vals<F, X>(mut self, values: [X; N], modifier: F) -> Result<Self, ()>
-        where F: Fn(T, X) -> Result<T, ()>,
-              X: Clone {
-
-        for i in 0..N {
-            self[i] = modifier(self[i].clone(), values[i].clone())?;
-        }
-
-        Ok( self )
-    }
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
-
-     When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```other``` through the **second**
-     ```
-     # use point_nd::PointND;
-     # fn apply_point_example() -> Result<(), ()> {
-     let p1 = PointND::new([0,9,3,1]);
-     let p2 = PointND::fill(10);
-     let p3 = PointND
-         ::new([1,2,3,4])                         // Creates a new PointND
-         .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
-         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the returned point
-                                                  //  with the items in p2
-     assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply_point<F>(self, other: Self, modifier: F) -> Result<Self, ()>
-        where F: Fn(T, T) -> Result<T, ()> {
-
-        self.apply_vals(other.into_arr(), modifier)
-    }
-
-}
-
 
 // Deref
 impl<T, const N: usize> Deref for PointND<T, N> {
@@ -551,10 +546,11 @@ impl<T, const N: usize> Neg for PointND<T, N>
 
 //  Arithmetic
 impl<T, const N: usize> Add for PointND<T, N>
-    where T: Add<Output = T> + Clone  {
+    where T: Clone + Add<Output = T> {
 
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
+
         let mut arr = self.into_arr();
         for i in 0..N {
             arr[i] = arr[i].clone() + rhs[i].clone();
@@ -565,7 +561,7 @@ impl<T, const N: usize> Add for PointND<T, N>
 
 }
 impl<T, const N: usize> Sub for PointND<T, N>
-    where T: Sub<Output = T> + Clone {
+    where T: Clone + Sub<Output = T> {
 
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
@@ -579,7 +575,7 @@ impl<T, const N: usize> Sub for PointND<T, N>
 
 }
 impl<T, const N: usize> Mul for PointND<T, N>
-    where T: Mul<Output = T> + Clone {
+    where T: Clone + Mul<Output = T> {
 
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
@@ -598,7 +594,7 @@ impl<T, const N: usize> Mul for PointND<T, N>
  Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> Div for PointND<T, N>
-    where T: Div<Output = T> + Clone {
+    where T: Clone + Div<Output = T> {
 
     type Output = Self;
     fn div(self, rhs: Self) -> Self::Output {
@@ -614,7 +610,7 @@ impl<T, const N: usize> Div for PointND<T, N>
 
 //  Arithmetic Assign
 impl<T, const N: usize> AddAssign for PointND<T, N>
-    where T: AddAssign + Clone {
+    where T: Clone + AddAssign {
 
     fn add_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -624,7 +620,7 @@ impl<T, const N: usize> AddAssign for PointND<T, N>
 
 }
 impl<T, const N: usize> SubAssign for PointND<T, N>
-    where T: SubAssign + Clone {
+    where T: Clone + SubAssign {
 
     fn sub_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -634,7 +630,7 @@ impl<T, const N: usize> SubAssign for PointND<T, N>
 
 }
 impl<T, const N: usize> MulAssign for PointND<T, N>
-    where T: MulAssign + Clone {
+    where T: Clone + MulAssign {
 
     fn mul_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -649,7 +645,7 @@ impl<T, const N: usize> MulAssign for PointND<T, N>
  Dividing by a ```PointND``` that contains a zero will cause a panic
  */
 impl<T, const N: usize> DivAssign for PointND<T, N>
-    where T: DivAssign + Clone {
+    where T: Clone + DivAssign {
 
     fn div_assign(&mut self, rhs: Self) {
         for i in 0..N {
@@ -662,8 +658,7 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
 
 // Convenience Getters and Setters
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
-impl<T> PointND<T, 1>
-    where T: Clone {
+impl<T> PointND<T, 1> {
 
     pub fn x(&self) -> &T { &self[0] }
 
@@ -671,8 +666,7 @@ impl<T> PointND<T, 1>
 
 }
 /// Functions for safely getting and setting the values contained by a 2D ```PointND```
-impl<T> PointND<T, 2>
-    where T: Clone {
+impl<T> PointND<T, 2> {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -682,8 +676,7 @@ impl<T> PointND<T, 2>
 
 }
 /// Functions for safely getting and setting the values contained by a 3D ```PointND```
-impl<T> PointND<T, 3>
-    where T: Clone {
+impl<T> PointND<T, 3>  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -695,8 +688,7 @@ impl<T> PointND<T, 3>
 
 }
 /// Functions for safely getting and setting the values contained by a 4D ```PointND```
-impl<T> PointND<T, 4>
-    where T: Clone {
+impl<T> PointND<T, 4>  {
 
     pub fn x(&self) -> &T { &self[0] }
     pub fn y(&self) -> &T { &self[1] }
@@ -713,20 +705,20 @@ impl<T> PointND<T, 4>
 
 // Convenience Shifters
 impl<T> PointND<T, 1>
-    where T: Clone + AddAssign {
+    where T: AddAssign {
 
     pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
 
 }
 impl<T> PointND<T, 2>
-    where T: Clone + AddAssign {
+    where T: AddAssign {
 
     pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
     pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
 
 }
 impl<T> PointND<T, 3>
-    where T: Clone + AddAssign {
+    where T: AddAssign {
 
     pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
     pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
@@ -734,7 +726,7 @@ impl<T> PointND<T, 3>
 
 }
 impl<T> PointND<T, 4>
-    where T: Clone + AddAssign {
+    where T: AddAssign {
 
     pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
     pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
@@ -1087,9 +1079,9 @@ mod tests {
                     [Some(10), None, Some(20)],
                     |a, b| {
                         if let Some(i) = b {
-                            Ok(a + i)
+                            Ok( a + i )
                         } else {
-                            Ok( a )
+                            Ok( *a )
                         }
                     }
                 ).unwrap();
@@ -1103,6 +1095,26 @@ mod tests {
             let p2 = PointND::new([0, -1, -2, -3]);
             let p3 = p1.apply_point(p2, |a, b| Ok( a - b )).unwrap();
             assert_eq!(p3.into_arr(), [0, 2, 4, 6]);
+        }
+
+        #[test]
+        fn can_apply_noclone_items() {
+
+            #[derive(Debug, Eq, PartialEq)]
+            enum X { A, B, C }
+
+            let p = PointND
+                ::new([X::A, X::B, X::C])
+                .apply(|x| {
+                    let new = match x {
+                        X::A => X::B,
+                        X::B => X::C,
+                        X::C => X::A,
+                    };
+                    Ok( new )
+                }).unwrap();
+
+            assert_eq!(p.into_arr(), [X::B, X::C, X::A]);
         }
 
     }
