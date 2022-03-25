@@ -450,6 +450,32 @@ impl<T, const N: usize> PointND<T, N>
         self.apply_vals(other.into_arr(), modifier)
     }
 
+
+    /**
+     */
+    pub fn inspect<F, R>(&self, inspector: F) -> R
+        where F: Fn([T; N]) -> R {
+
+        inspector(self.clone().into_arr())
+    }
+
+    /**
+     */
+    pub fn inspect_vals<F, R, X>(&self, vals: [X; N], inspector: F) -> R
+        where F: Fn([T; N], [X; N]) -> R {
+
+        inspector(self.clone().into_arr(), vals)
+    }
+
+    /**
+     */
+    pub fn inspect_point<F, R>(&self, other: &Self, inspector: F) -> R
+        where F: Fn([T; N], [T; N]) -> R {
+
+        inspector(self.clone().into_arr(), other.clone().into_arr())
+    }
+
+
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
         self.0
