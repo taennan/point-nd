@@ -11,14 +11,7 @@ See the ```PointND``` struct for basic usage
 
  */
 
-use core::{
-    ops::{
-        Deref, DerefMut,
-        Add, Sub, Mul, Div,
-        AddAssign, SubAssign, MulAssign, DivAssign,
-        Neg
-    }
-};
+use core::ops::{ Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg };
 
 
 /**
@@ -303,13 +296,10 @@ for _ in p.into_arr().into_iter() { /* Move stuff */ }
 // assert_eq!(p.dims(), 2);
 ```
  */
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PointND<T, const N: usize>([T; N])
-    where T: Clone;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PointND<T, const N: usize>([T; N]);
 
-// When items implement at least Clone
-impl<T, const N: usize> PointND<T, N>
-    where T: Clone {
+impl<T, const N: usize> PointND<T, N> {
 
     /**
      Returns a new ```PointND``` with values from the specified array
@@ -327,154 +317,14 @@ impl<T, const N: usize> PointND<T, N>
         PointND(arr)
     }
 
-
     /**
      Returns the number of dimensions of the point (a 2D point will return 2, a 3D point 3, _etc_)
 
      Equivalent to calling ```len()```
      */
     pub fn dims(&self) -> usize {
-        self.len()
+        self.0.len()
     }
-
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
-     ```
-     # use point_nd::PointND;
-     # fn apply_example() -> Result<(), ()> {
-     let p = PointND
-         ::new([0,1,2])                    // Creates a new PointND
-         .apply(|item| Ok( item + 2 ))?    // Adds 2 to each item
-         .apply(|item| Ok( item * 3 ))?;   // Multiplies each item by 3
-     assert_eq!(p.into_arr(), [6, 9, 12]);
-     # Ok(())
-     # }
-     ```
-     */
-    // Did not call apply_dims() inside this to avoid the dimension checks it does
-    pub fn apply<F>(self, modifier: F) -> Result<Self, ()>
-        where F: Fn(T) -> Result<T, ()> {
-
-        let mut arr = self.into_arr();
-        for i in 0..N {
-            arr[i] = modifier(arr[i].clone())?;
-        }
-
-        Ok( PointND::new(arr) )
-    }
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
-
-     Any items at dimensions not specified will be passed to the new point without change
-     ```
-     # use point_nd::PointND;
-     # fn apply_dims_example() -> Result<(), ()> {
-     let p = PointND
-         ::new([0,1,2,3,4])                            // Creates a new PointND
-         .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
-         .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
-     assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply_dims<F>(self, dims: &[usize], modifier: F) -> Result<Self, ()>
-        where F: Fn(T) -> Result<T, ()> {
-
-        let mut arr = self.into_arr();
-        for i in 0..N {
-            if dims.contains(&i) {
-                arr[i] = modifier(arr[i].clone())?;
-            }
-        }
-
-        Ok( PointND::new(arr) )
-    }
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained
-     by ```self``` and ```values``` to create a new ```PointND```
-
-     When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**
-     ```
-     # use point_nd::PointND;
-     # fn apply_vals_example() -> Result<(), ()> {
-     let p = PointND
-         ::new([0,1,2])                             // Creates a new PointND
-         .apply_vals([1,3,5], |a, b| Ok( a + b ))?  // Adds items in point to items in array
-         .apply_vals([2,4,6], |a, b| Ok( a * b ))?; // Multiplies items in point
-                                                    //  to items in array
-     assert_eq!(p.into_arr(), [2, 16, 42]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply_vals<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
-        where F: Fn(T, X) -> Result<T, ()>,
-              X: Clone {
-
-        let mut arr = self.into_arr();
-        for i in 0..N {
-            arr[i] = modifier(arr[i].clone(), values[i].clone())?;
-        }
-
-        Ok( PointND::new(arr) )
-    }
-
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
-
-     When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```other``` through the **second**
-     ```
-     # use point_nd::PointND;
-     # fn apply_point_example() -> Result<(), ()> {
-     let p1 = PointND::new([0,9,3,1]);
-     let p2 = PointND::fill(10);
-     let p3 = PointND
-         ::new([1,2,3,4])                         // Creates a new PointND
-         .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
-         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the returned point
-                                                  //  with the items in p2
-     assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
-     # Ok(())
-     # }
-     ```
-     */
-    pub fn apply_point<F>(self, other: Self, modifier: F) -> Result<Self, ()>
-        where F: Fn(T, T) -> Result<T, ()> {
-
-        self.apply_vals(other.into_arr(), modifier)
-    }
-
-
-    /**
-     */
-    pub fn inspect<F, R>(&self, inspector: F) -> R
-        where F: Fn([T; N]) -> R {
-
-        inspector(self.clone().into_arr())
-    }
-
-    /**
-     */
-    pub fn inspect_vals<F, R, X>(&self, vals: [X; N], inspector: F) -> R
-        where F: Fn([T; N], [X; N]) -> R {
-
-        inspector(self.clone().into_arr(), vals)
-    }
-
-    /**
-     */
-    pub fn inspect_point<F, R>(&self, other: &Self, inspector: F) -> R
-        where F: Fn([T; N], [T; N]) -> R {
-
-        inspector(self.clone().into_arr(), other.clone().into_arr())
-    }
-
 
     /// Consumes ```self```, returning the contained array
     pub fn into_arr(self) -> [T; N] {
@@ -483,7 +333,6 @@ impl<T, const N: usize> PointND<T, N>
 
 }
 
-// When items implement at least Clone and Copy
 impl<T, const N: usize> PointND<T, N>
     where T: Clone + Copy {
 
@@ -551,6 +400,156 @@ impl<T, const N: usize> PointND<T, N>
 
 }
 
+impl<T, const N: usize> PointND<T, N>
+    where T: Clone {
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
+     ```
+     # use point_nd::PointND;
+     # fn apply_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2])                    // Creates a new PointND
+         .apply(|item| Ok( item + 2 ))?    // Adds 2 to each item
+         .apply(|item| Ok( item * 3 ))?;   // Multiplies each item by 3
+     assert_eq!(p.into_arr(), [6, 9, 12]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply<F>(mut self, modifier: F) -> Result<Self, ()>
+        where F: Fn(T) -> Result<T, ()> {
+
+        for i in 0..N {
+            self[i] = modifier(self[i].clone())?;
+        }
+
+        Ok( self )
+    }
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
+
+     Any items at dimensions not specified will be passed to the new point without change
+     ```
+     # use point_nd::PointND;
+     # fn apply_dims_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2,3,4])                            // Creates a new PointND
+         .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
+         .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
+     assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Result<Self, ()>
+        where F: Fn(T) -> Result<T, ()> {
+
+        for i in 0..N {
+            if dims.contains(&i) {
+                self[i] = modifier(self[i].clone())?;
+            }
+        }
+
+        Ok( self )
+    }
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained
+     by ```self``` and ```values``` to create a new ```PointND```
+
+     When creating a modifier function to be used by this method, keep in mind that the items in
+     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**
+     ```
+     # use point_nd::PointND;
+     # fn apply_vals_example() -> Result<(), ()> {
+     let p = PointND
+         ::new([0,1,2])                             // Creates a new PointND
+         .apply_vals([1,3,5], |a, b| Ok( a + b ))?  // Adds items in point to items in array
+         .apply_vals([2,4,6], |a, b| Ok( a * b ))?; // Multiplies items in point
+                                                    //  to items in array
+     assert_eq!(p.into_arr(), [2, 16, 42]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply_vals<F, X>(mut self, values: [X; N], modifier: F) -> Result<Self, ()>
+        where F: Fn(T, X) -> Result<T, ()>,
+              X: Clone {
+
+        for i in 0..N {
+            self[i] = modifier(self[i].clone(), values[i].clone())?;
+        }
+
+        Ok( self )
+    }
+
+    /**
+     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
+
+     When creating a modifier function to be used by this method, keep in mind that the items in
+     ```self``` are passed to it through the **first arg**, and the items in ```other``` through the **second**
+     ```
+     # use point_nd::PointND;
+     # fn apply_point_example() -> Result<(), ()> {
+     let p1 = PointND::new([0,9,3,1]);
+     let p2 = PointND::fill(10);
+     let p3 = PointND
+         ::new([1,2,3,4])                         // Creates a new PointND
+         .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
+         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the returned point
+                                                  //  with the items in p2
+     assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
+     # Ok(())
+     # }
+     ```
+     */
+    pub fn apply_point<F>(self, other: Self, modifier: F) -> Result<Self, ()>
+        where F: Fn(T, T) -> Result<T, ()> {
+
+        self.apply_vals(other.into_arr(), modifier)
+    }
+
+    /// TEST
+    pub fn apply_x<F, X>(mut self, other: PointND<X, N>, modifier: F) -> Result<Self, ()>
+        where F: Fn(T, X) -> Result<T, ()>,
+              X: Clone {
+
+        for i in 0..N {
+            self[i] = modifier(self[i].clone(), other[i].clone())?;
+        }
+
+        Ok( self )
+    }
+
+
+    /**
+     */
+    pub fn inspect<F, R>(&self, inspector: F) -> R
+        where F: Fn([T; N]) -> R {
+
+        inspector(self.clone().into_arr())
+    }
+
+    /**
+     */
+    pub fn inspect_vals<F, R, X>(&self, vals: [X; N], inspector: F) -> R
+        where F: Fn([T; N], [X; N]) -> R {
+
+        inspector(self.clone().into_arr(), vals)
+    }
+
+    /**
+     */
+    pub fn inspect_point<F, R>(&self, other: &Self, inspector: F) -> R
+        where F: Fn([T; N], [T; N]) -> R {
+
+        inspector(self.clone().into_arr(), other.clone().into_arr())
+    }
+
+}
+
 
 // Deref
 impl<T, const N: usize> Deref for PointND<T, N>
@@ -570,6 +569,7 @@ impl<T, const N: usize> DerefMut for PointND<T, N>
     }
 
 }
+
 
 // Math operators
 //  Negation
@@ -748,6 +748,7 @@ impl<T> PointND<T, 4>
     pub fn set_w(&mut self, new_value: T) { self[3] = new_value; }
 
 }
+
 
 // Convenience Shifters
 impl<T> PointND<T, 1>
@@ -1091,6 +1092,84 @@ mod tests {
     }
 
     #[cfg(test)]
+    mod inspectors {
+        use super::*;
+
+        #[test]
+        fn can_inspect() {
+
+            let all_pos = |point: [i32; 4]| -> bool {
+                for i in point.into_iter() {
+                    if i < 0 {
+                        return false
+                    }
+                }
+                return true
+            };
+
+            let p = PointND::new([1,2,3,4]);
+            assert!(p.inspect(all_pos));
+
+            let p = PointND::new([1,2,3,-4]);
+            assert!(!p.inspect(all_pos));
+        }
+
+        #[test]
+        fn type_test() {
+
+            fn inspect<F, R, T, const N: usize>(point: &PointND<T, N>, inspector: F) -> R
+                where F: Fn(&PointND<T, N>) -> R,
+                      T: Clone {
+                inspector(point)
+            }
+
+            mod float {
+                use super::*;
+
+                pub fn all_pos<const N: usize>(p: &PointND<f64, N>) -> bool {
+                    for i in p.into_iter() {
+                        if i < 0.0 { return false }
+                    }
+                    return true
+                }
+
+            }
+
+            mod int {
+                use super::*;
+
+                pub fn all_pos<const N: usize>(p: &PointND<i32, N>) -> bool {
+                    for i in p.into_iter() {
+                        if i < 0 { return false }
+                    }
+                    return true
+                }
+
+            }
+
+            let p = PointND::new([1,-2,3,-4]);
+            assert!(!inspect(&p, int::all_pos));
+            let p = PointND::new([1,2,3,4]);
+            assert!(inspect(&p, int::all_pos));
+
+            let p = PointND::new([1.0,-2.5,3.6,-4.9]);
+            assert!(!inspect(&p, float::all_pos));
+            let p = PointND::new([1.0,2.5,3.6,4.9]);
+            assert!(inspect(&p, float::all_pos));
+
+            let p = PointND::new([1.0,2.5,3.6,4.9]);
+            assert!(inspect(&p, |p| {
+                for i in p.into_iter() {
+                        if i < 0.0 { return false }
+                }
+                return true
+            }));
+
+        }
+
+    }
+
+    #[cfg(test)]
     mod appliers {
         use super::*;
 
@@ -1141,6 +1220,22 @@ mod tests {
             let p2 = PointND::new([0, -1, -2, -3]);
             let p3 = p1.apply_point(p2, |a, b| Ok( a - b )).unwrap();
             assert_eq!(p3.into_arr(), [0, 2, 4, 6]);
+        }
+
+        #[test]
+        fn can_apply_x() {
+
+            let p1 = PointND::new([0,1,2,3]);
+            let p2 = PointND::new([None, Some(()), None, Some(())]);
+            let p3 = p1.apply_x(p2, |a, b| {
+                if let Some(_) = b {
+                    Ok( a + 10 )
+                } else {
+                    Ok( a )
+                }
+            }).expect("Got err");
+
+            assert_eq!(p3.into_arr(), [0, 11, 2, 13]);
         }
 
     }
