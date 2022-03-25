@@ -515,8 +515,7 @@ impl<T, const N: usize> PointND<T, N>
 
 
 // Deref
-impl<T, const N: usize> Deref for PointND<T, N>
-    where T: Clone {
+impl<T, const N: usize> Deref for PointND<T, N> {
 
     type Target = [T; N];
     fn deref(&self) -> &Self::Target {
@@ -524,8 +523,7 @@ impl<T, const N: usize> Deref for PointND<T, N>
     }
 
 }
-impl<T, const N: usize> DerefMut for PointND<T, N>
-    where T: Clone {
+impl<T, const N: usize> DerefMut for PointND<T, N> {
 
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
