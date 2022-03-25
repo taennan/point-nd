@@ -511,43 +511,6 @@ impl<T, const N: usize> PointND<T, N>
         self.apply_vals(other.into_arr(), modifier)
     }
 
-    /// TEST
-    pub fn apply_x<F, X>(mut self, other: PointND<X, N>, modifier: F) -> Result<Self, ()>
-        where F: Fn(T, X) -> Result<T, ()>,
-              X: Clone {
-
-        for i in 0..N {
-            self[i] = modifier(self[i].clone(), other[i].clone())?;
-        }
-
-        Ok( self )
-    }
-
-
-    /**
-     */
-    pub fn inspect<F, R>(&self, inspector: F) -> R
-        where F: Fn([T; N]) -> R {
-
-        inspector(self.clone().into_arr())
-    }
-
-    /**
-     */
-    pub fn inspect_vals<F, R, X>(&self, vals: [X; N], inspector: F) -> R
-        where F: Fn([T; N], [X; N]) -> R {
-
-        inspector(self.clone().into_arr(), vals)
-    }
-
-    /**
-     */
-    pub fn inspect_point<F, R>(&self, other: &Self, inspector: F) -> R
-        where F: Fn([T; N], [T; N]) -> R {
-
-        inspector(self.clone().into_arr(), other.clone().into_arr())
-    }
-
 }
 
 
@@ -1092,84 +1055,6 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod inspectors {
-        use super::*;
-
-        #[test]
-        fn can_inspect() {
-
-            let all_pos = |point: [i32; 4]| -> bool {
-                for i in point.into_iter() {
-                    if i < 0 {
-                        return false
-                    }
-                }
-                return true
-            };
-
-            let p = PointND::new([1,2,3,4]);
-            assert!(p.inspect(all_pos));
-
-            let p = PointND::new([1,2,3,-4]);
-            assert!(!p.inspect(all_pos));
-        }
-
-        #[test]
-        fn type_test() {
-
-            fn inspect<F, R, T, const N: usize>(point: &PointND<T, N>, inspector: F) -> R
-                where F: Fn(&PointND<T, N>) -> R,
-                      T: Clone {
-                inspector(point)
-            }
-
-            mod float {
-                use super::*;
-
-                pub fn all_pos<const N: usize>(p: &PointND<f64, N>) -> bool {
-                    for i in p.into_iter() {
-                        if i < 0.0 { return false }
-                    }
-                    return true
-                }
-
-            }
-
-            mod int {
-                use super::*;
-
-                pub fn all_pos<const N: usize>(p: &PointND<i32, N>) -> bool {
-                    for i in p.into_iter() {
-                        if i < 0 { return false }
-                    }
-                    return true
-                }
-
-            }
-
-            let p = PointND::new([1,-2,3,-4]);
-            assert!(!inspect(&p, int::all_pos));
-            let p = PointND::new([1,2,3,4]);
-            assert!(inspect(&p, int::all_pos));
-
-            let p = PointND::new([1.0,-2.5,3.6,-4.9]);
-            assert!(!inspect(&p, float::all_pos));
-            let p = PointND::new([1.0,2.5,3.6,4.9]);
-            assert!(inspect(&p, float::all_pos));
-
-            let p = PointND::new([1.0,2.5,3.6,4.9]);
-            assert!(inspect(&p, |p| {
-                for i in p.into_iter() {
-                        if i < 0.0 { return false }
-                }
-                return true
-            }));
-
-        }
-
-    }
-
-    #[cfg(test)]
     mod appliers {
         use super::*;
 
@@ -1220,22 +1105,6 @@ mod tests {
             let p2 = PointND::new([0, -1, -2, -3]);
             let p3 = p1.apply_point(p2, |a, b| Ok( a - b )).unwrap();
             assert_eq!(p3.into_arr(), [0, 2, 4, 6]);
-        }
-
-        #[test]
-        fn can_apply_x() {
-
-            let p1 = PointND::new([0,1,2,3]);
-            let p2 = PointND::new([None, Some(()), None, Some(())]);
-            let p3 = p1.apply_x(p2, |a, b| {
-                if let Some(_) = b {
-                    Ok( a + 10 )
-                } else {
-                    Ok( a )
-                }
-            }).expect("Got err");
-
-            assert_eq!(p3.into_arr(), [0, 11, 2, 13]);
         }
 
     }
