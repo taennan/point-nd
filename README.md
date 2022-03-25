@@ -14,14 +14,14 @@ for use with a Rust version **>= 1.51**.
 ```rust
 // Creating a 2D point from a given array
 let arr = [0,1];
-let p: PointND<i32, 2> = PointND::new(arr);
+let p = PointND::new(arr);
 
 // Creating a 3D point from values of a given slice
 let vec = vec![0, 1, 2];
-let p: PointND<i32, 3> = PointND::from_slice(&vec);
+let p = PointND::<_, 3>::from_slice(&vec);
 
 // Creating a 4D point with all values set to 5
-let p: PointND<i32, 4> = PointND::fill(5);
+let p = PointND::<_, 4>::fill(5);
 ```
 
 ### Querying Values and Properties 

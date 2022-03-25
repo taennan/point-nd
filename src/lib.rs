@@ -128,7 +128,7 @@ let w = p[dim!(z)];
 let the_rest = &p[dimr!(w..)];
 ```
 
-To get all the values contained by a point, use the ```into_arr()``` method
+To get **all** the values contained by a point, use the ```into_arr()``` method
 
 ```
 # use point_nd::PointND;
@@ -187,6 +187,28 @@ assert_eq!(*p.x(), -100);
 // Sets y via indexing and dimension macros
 p[dim!(y)] = -100;
 assert_eq!(*p.x(), *p.y());
+```
+
+The basic arithmetic and arithmetic assign operations
+(```Neg```, ```Add```, ```AddAssign```, _etc_) are also available
+
+```
+# use point_nd::PointND;
+let p = PointND::new([-1, 0, 1]);
+
+// Neg
+let neg_p = -p.clone();
+assert_eq!(neg_p.into_arr(), [1, 0, -1]);
+
+// Sub
+let p_diff = p.clone() - p.clone();
+assert_eq!(p_diff.into_arr(), [0, 0, 0]);
+
+// MulAssign
+let p_mul = p.clone() * p.clone();
+assert_eq!(p_mul.into_arr(), [1, 0, 1]);
+
+// ...and etc.
 ```
 
 ### Appliers
@@ -652,7 +674,6 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
 
 
 // Convenience Getters and Setters
-//  Where items implement Clone
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
     where T: Clone {
@@ -702,45 +723,112 @@ impl<T> PointND<T, 4>
 
 }
 
+// Convenience Shifters
+impl<T> PointND<T, 1>
+    where T: Clone + AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+
+}
+impl<T> PointND<T, 2>
+    where T: Clone + AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
+
+}
+impl<T> PointND<T, 3>
+    where T: Clone + AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
+    pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
+
+}
+impl<T> PointND<T, 4>
+    where T: Clone + AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
+    pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
+    pub fn shift_w(&mut self, delta: T) { self[3] += delta; }
+
+}
+
 
 // Dimension Macros
 /**
- Converts an identifier _x_, _y_, _z_ or _w_ to a usize value for indexing
+ Converts an identifier _x_, _y_, _z_ or _w_ to a ```usize``` value for indexing collections.
 
- Using any identifier apart from the above or multiple identifiers will result in a compile time error
+ Using any identifier apart from the above or multiple identifiers will result in a compile time error.
 
- It is recommended to use parentheses when calling this macro for clarity
+ It is recommended to use parentheses when calling this macro for clarity.
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dim;
- let x_index: usize = dim!(x);
- assert_eq!(x_index, 0usize);
- let y_index = dim!(y);
- assert_eq!(y_index, 1usize);
+ let first: usize = dim!(x);
+ let second = dim!(y);
+ let third  = dim!(z);
+ let fourth = dim!(w);
+
+ assert_eq!(first,  0);
+ assert_eq!(second, 1);
+ assert_eq!(third,  2);
+ assert_eq!(fourth, 3);
 
  // ERROR: Only allowed to use one of x, y, z or w
  // let fifth_dimension = dim!(v);
 
  // ERROR: Only accepts one identifier
- //        If multiple dimensions are what you need, see the dims macro
- // let sixth_and_seventh = dim!(u, t);
+ //        If multiple dimensions are what you need, see the 'dims' macro
+ // let third_and_fourth = dim!(z, w);
  # }
  ```
 
- This can be especially useful for indexing a ```PointND``` (or any collection indexable with a usize)
+ This can be especially useful for indexing a ```PointND```.
 
- If a dimension is passed that is out of bounds, it will result in a compile time error
+ If a dimension is passed that is out of bounds, it will result in a compile time error.
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
- # use point_nd::{dim, PointND};
+ # use point_nd::dim;
+ # use point_nd::PointND;
  let p = PointND::new([0,1,2]);
- let y_val = p[dim!(y)];
- assert_eq!(y_val, 1);
+ let y = p[dim!(y)];
+ assert_eq!(y, 1);
 
  // ERROR: Index out of bounds
  // let w_val = p[dim!(w)];
+ # }
+ ```
+
+ The dimensions of the point being indexed don't necessarily have to be within ```x..=w```
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::dim;
+ # use point_nd::PointND;
+ // Works with points of any dimensions
+ let five_d_point = PointND::new([0,1,2,3,4]);
+ let z = five_d_point[dim!(z)];
+ assert_eq!(z, 2);
+ # }
+ ```
+
+ This macro is not just limited to ```PointND```'s though.
+
+ Any collection that accepts a ```usize``` for indexing is compatible with this macro
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::dim;
+ let array = [0,1,2,3];
+ let first_item = array[dim!(x)];
+ let second     = array[dim!(y)];
+ // ...etc
+ # assert_eq!(first_item, 0);
+ # assert_eq!(second, 1);
  # }
  ```
  */
@@ -755,16 +843,16 @@ macro_rules! dim {
 }
 
 /**
- Converts an array of identifiers to an array of usize values
+ Converts an array of identifiers _x_, _y_, _z_ or _w_ to an array of ```usize``` values
 
- Using any identifier or expression apart from _x_, _y_, _z_ or _w_ will result in a compile time error
+ Using any identifier or expression apart from the above will result in a compile time error
 
  It is recommended to use square brackets when calling this macro for clarity
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dims;
- let index_arr = dims![
+ let dim_arr: [usize; 4] = dims![
      x,  // 0usize
      y,  // 1
      z,  // 2
@@ -773,7 +861,7 @@ macro_rules! dim {
 
  // Using identifiers multiple times is allowed,
  //  it's only a more readable way to specify indexes after all
- let index_arr =  dims![x,x, y,y, z,z];
+ let index_arr = dims![x,x, y,y, z,z];
  assert_eq!(index_arr, [0,0, 1,1, 2,2usize]);
  # }
  ```
@@ -782,7 +870,8 @@ macro_rules! dim {
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
- # use point_nd::{dims, PointND};
+ # use point_nd::dims;
+ # use point_nd::PointND;
  # fn apply_dims_example() -> Result<(), ()> {
  let p = PointND
      ::new([0,1,2,3])
@@ -802,7 +891,7 @@ macro_rules! dims {
 }
 
 /**
- Converts a range of identifiers and expressions to a range of usize values
+ Converts a range of identifiers and ```usize``` expressions to a range of ```usize``` values
 
  Using any identifiers apart from _x_, _y_, _z_ or _w_ will result in a compile time error
 
@@ -812,14 +901,13 @@ macro_rules! dims {
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
- # use point_nd::{dimr, PointND};
- /*
-  PLEASE NOTE!
-  x = 0usize
-  y = 1
-  z = 2
-  w = 3
-  */
+ # use point_nd::dimr;
+ # use point_nd::PointND;
+ // PLEASE NOTE!
+ //  x = 0usize
+ //  y = 1
+ //  z = 2
+ //  w = 3
 
  // Range with identifiers
  assert_eq!(dimr!(x..z), 0..2usize);
@@ -848,10 +936,27 @@ macro_rules! dims {
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
- # use point_nd::{dimr, PointND};
+ # use point_nd::dimr;
+ # use point_nd::PointND;
  let p = PointND::new([0,1,2,3,4,5]);
  let slice = &p[dimr!(x..=z)];
  assert_eq!(slice, [0,1,2]);
+ # }
+ ```
+
+ This macro is not just limited to ```PointND```'s though.
+
+ Any collection that accepts a range of ```usize```'s for indexing is compatible with this macro
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::dimr;
+ let array = [0,1,2,3,4,5];
+ let first_to_third  = &array[dimr!(x..w)];
+ let fourth_to_sixth = &array[dimr!(w..=5)];
+
+ # assert_eq!(*first_to_third,  [0, 1, 2]);
+ # assert_eq!(*fourth_to_sixth, [3, 4, 5]);
  # }
  ```
  */
@@ -1015,7 +1120,7 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod get_and_set {
+    mod get {
         use super::*;
 
         #[test]
@@ -1032,6 +1137,50 @@ mod tests {
             let _x = p[p.dims() + 1];
         }
 
+
+        #[test]
+        fn getter_for_1d_points_work() {
+            let arr = [0];
+            let p = PointND::new(arr);
+            assert_eq!(*p.x(), arr[0]);
+        }
+
+        #[test]
+        fn getters_for_2d_points_work() {
+            let arr = [0,1];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+        }
+
+        #[test]
+        fn getters_for_3d_points_work() {
+            let arr = [0,1,2];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+            assert_eq!(*p.z(), arr[2]);
+        }
+
+        #[test]
+        fn getters_for_4d_points_work() {
+            let arr = [0,1,2,3];
+            let p = PointND::new(arr);
+
+            assert_eq!(*p.x(), arr[0]);
+            assert_eq!(*p.y(), arr[1]);
+            assert_eq!(*p.z(), arr[2]);
+            assert_eq!(*p.w(), arr[3]);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod set {
+        use super::*;
+
         #[test]
         fn can_set_value_by_index() {
 
@@ -1044,12 +1193,6 @@ mod tests {
         }
 
         #[test]
-        fn getter_for_1d_points_work() {
-            let arr = [0];
-            let p = PointND::new(arr);
-            assert_eq!(*p.x(), arr[0]);
-        }
-        #[test]
         fn setter_for_1d_points_work() {
 
             let old_vals = [0];
@@ -1060,14 +1203,6 @@ mod tests {
             assert_eq!(*p.x(), new_val);
         }
 
-        #[test]
-        fn getters_for_2d_points_work() {
-            let arr = [0,1];
-            let p = PointND::new(arr);
-
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-        }
         #[test]
         fn setters_for_2d_points_work() {
 
@@ -1082,15 +1217,6 @@ mod tests {
             assert_eq!(*p.y(), new_vals[1]);
         }
 
-        #[test]
-        fn getters_for_3d_points_work() {
-            let arr = [0,1,2];
-            let p = PointND::new(arr);
-
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-            assert_eq!(*p.z(), arr[2]);
-        }
         #[test]
         fn setters_for_3d_points_work() {
 
@@ -1108,16 +1234,6 @@ mod tests {
         }
 
         #[test]
-        fn getters_for_4d_points_work() {
-            let arr = [0,1,2,3];
-            let p = PointND::new(arr);
-
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-            assert_eq!(*p.z(), arr[2]);
-            assert_eq!(*p.w(), arr[3]);
-        }
-        #[test]
         fn setters_for_4d_points_work() {
 
             let old_vals = [0,1,2,3];
@@ -1133,6 +1249,50 @@ mod tests {
             assert_eq!(*p.y(), new_vals[1]);
             assert_eq!(*p.z(), new_vals[2]);
             assert_eq!(*p.w(), new_vals[3]);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod shift {
+        use super::*;
+
+        #[test]
+        fn can_shift_1d_points() {
+            let mut p = PointND::new([0.1]);
+            p.shift_x(1.23);
+
+            assert_eq!(p.into_arr(), [1.33]);
+        }
+
+        #[test]
+        fn can_shift_2d_points() {
+            let mut p = PointND::new([12, 345]);
+            p.shift_x(-22);
+            p.shift_y(-345);
+
+            assert_eq!(p.into_arr(), [-10, 0]);
+        }
+
+        #[test]
+        fn can_shift_3d_points() {
+            let mut p = PointND::new([42.4, 2.85, 75.01]);
+            p.shift_x(40.6);
+            p.shift_y(-2.85);
+            p.shift_z(24.99);
+
+            assert_eq!(p.into_arr(), [83.0, 0.0, 100.0]);
+        }
+
+        #[test]
+        fn can_shift_4d_points() {
+            let mut p = PointND::new([0,1,2,3]);
+            p.shift_x(10);
+            p.shift_y(-2);
+            p.shift_z(5);
+            p.shift_w(0);
+
+            assert_eq!(p.into_arr(), [10, -1, 7, 3]);
         }
 
     }

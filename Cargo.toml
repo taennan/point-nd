@@ -2,7 +2,7 @@
 name = "point-nd"
 version = "0.4.1"
 edition = "2021"
-description = "A simple and flexible data structure for modelling points on an axis"
+description = "A simple and flexible no-std struct for modelling points on an axis"
 
 license = "MIT"
 
@@ -13,6 +13,6 @@ authors = [
 repository = "https://github.com/taennan/point-nd/tree/main"
 
 keywords = ["point", "geometry", "multidimensional", "coordinate"]
-categories = ["data-structures"]
+categories = ["data-structures", "graphics", "no-std"]
 
 exclude = [".idea", ".gitignore", "CHANGELOG.md"]
