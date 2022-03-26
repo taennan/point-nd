@@ -353,8 +353,8 @@ impl<T, const N: usize> PointND<T, N> {
      # }
      ```
      */
-    pub fn apply<F>(mut self, modifier: F) -> Result<Self, ()>
-        where F: Fn(&T) -> Result<T, ()> {
+    pub fn apply<F, E>(mut self, modifier: F) -> Result<Self, E>
+        where F: Fn(&T) -> Result<T, E> {
 
         for i in 0..N {
             self[i] = modifier(&self[i])?;
