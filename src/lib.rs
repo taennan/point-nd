@@ -379,7 +379,7 @@ impl<T, const N: usize> PointND<T, N> {
      # }
      ```
      */
-    pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Result<Self, ()>
+    pub fn apply_dims<F, E>(mut self, dims: &[usize], modifier: F) -> Result<Self, E>
         where F: Fn(&T) -> Result<T, ()> {
 
         for i in 0..N {
@@ -410,8 +410,8 @@ impl<T, const N: usize> PointND<T, N> {
      # }
      ```
      */
-    pub fn apply_vals<F, X>(self, values: [X; N], modifier: F) -> Result<Self, ()>
-        where F: Fn(&T, &X) -> Result<T, ()>  {
+    pub fn apply_vals<F, X, E>(self, values: [X; N], modifier: F) -> Result<Self, E>
+        where F: Fn(&T, &X) -> Result<T, E>  {
 
         self.apply_point(PointND::new(values), modifier)
     }
@@ -436,8 +436,8 @@ impl<T, const N: usize> PointND<T, N> {
      # }
      ```
      */
-    pub fn apply_point<F, X>(mut self, other: PointND<X, N>, modifier: F) -> Result<Self, ()>
-        where F: Fn(&T, &X) -> Result<T, ()> {
+    pub fn apply_point<F, X, E>(mut self, other: PointND<X, N>, modifier: F) -> Result<Self, E>
+        where F: Fn(&T, &X) -> Result<T, E> {
 
         for i in 0..N {
             self[i] = modifier(&self[i], &other[i])?;
