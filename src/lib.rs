@@ -11,8 +11,9 @@ See the ```PointND``` struct for basic usage
 
  */
 
-use core::ops::{ Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg };
-
+use core::ops::{Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg };
+use core::convert::TryFrom;
+use core::array::TryFromSliceError;
 
 /**
 
@@ -736,6 +737,43 @@ impl<T> PointND<T, 4>
 }
 
 
+// TryFrom
+//  Array
+impl<T, const N: usize> TryFrom<[T; N]> for PointND<T, N> {
+    type Error = ();
+    fn try_from(array: [T; N]) -> Result<Self, Self::Error> {
+        if array.len() == 0 {
+            return Err(())
+        }
+        Ok( PointND(array) )
+    }
+}
+
+pub enum ConstructionError {
+    ZeroDimensions,
+    TryFromSlice(TryFromSliceError),
+}
+
+//  Slice
+impl<T, const N: usize> TryFrom<&[T]> for PointND<T, N>
+    where T: Clone + Copy {
+
+    type Error = ConstructionError;
+    fn try_from(slice: &[T]) -> Result<Self, Self::Error> {
+        if slice.len() == 0 {
+            return Err( ConstructionError::ZeroDimensions )
+        }
+
+        let res: Result<[T; N], _> = slice.clone().try_into();
+        if let Err(err) = res {
+            return Err( ConstructionError::TryFromSlice( err ) )
+        }
+
+        Ok( PointND(res.unwrap()) )
+    }
+}
+
+
 // Dimension Macros
 /**
  Converts an identifier _x_, _y_, _z_ or _w_ to a ```usize``` value for indexing collections.
@@ -1293,6 +1331,47 @@ mod tests {
             p.shift_w(0);
 
             assert_eq!(p.into_arr(), [10, -1, 7, 3]);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod try_from {
+        use super::*;
+
+        #[test]
+        #[allow(unused_variables)]
+        fn can_try_from_array() {
+            let arr = [0,1,2,3,4,5];
+            let p: Result<PointND<_, 6>, _> = arr.try_into();
+        }
+
+        #[test]
+        fn cannot_try_from_array_into_zero_dim_point() {
+            let arr: [i32; 0] = [];
+            let p: Result<PointND<_, 0>, _> = arr.try_into();
+            assert!(p.is_err());
+        }
+
+        #[test]
+        #[allow(unused_variables)]
+        fn can_try_from_slice() {
+            let slice = &[0,1,2,3,4][..];
+            let p: Result<PointND<_, 5>, _> = slice.try_into();
+        }
+
+        #[test]
+        fn cannot_try_from_slice_into_zero_dim_point() {
+            let slice: &[i32] = &[][..];
+            let p: Result<PointND<_, 0>, _> = slice.try_into();
+            assert!(p.is_err());
+        }
+
+        #[test]
+        fn cannot_try_from_slice_of_different_length() {
+            let slice = &[0,1,2,3,4][..];
+            let p: Result<PointND<_, 10921>, _> = slice.try_into();
+            assert!(p.is_err());
         }
 
     }
