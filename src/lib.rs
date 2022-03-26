@@ -3,11 +3,14 @@
 
 A simple and flexible multidimensional point struct, based on an array.
 
-This crate uses constant generics, it is recommended for use with a Rust version **>= 1.51**.
-
-No imports are made from the standard library, so this crate is ```#![no_std]``` compatible
-
 See the ```PointND``` struct for basic usage
+
+# Compatibility
+
+This crate is ```#![no_std]``` compatible.
+
+This crate uses constant generics, it is recommended
+for use with a Rust version of at least **1.51**
 
  */
 
