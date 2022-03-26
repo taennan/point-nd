@@ -309,7 +309,13 @@ impl<T, const N: usize> PointND<T, N> {
 
      ### Panics
 
-     If the length of the array is zero
+     - If the length of the array is zero
+
+    ```should_panic
+    # use point_nd::PointND;
+    let arr: [i32; 0] = [];
+    let p = PointND::new(arr);
+    ```
      */
     pub fn new(arr: [T; N]) -> Self {
         if arr.len() == 0 {
@@ -467,13 +473,25 @@ impl<T, const N: usize> PointND<T, N>
      let p = p1 + p2;
      ```
 
-     ### Panics
+     # Panics
 
-     If the length of the slice is zero
+     - If the length of the slice is zero
 
-     If the length of the slice is not equal to the dimensions specified by the constant generic
+    ```should_panic
+    # use point_nd::PointND;
+    let arr = [0,1,2];
+    let p = PointND::from_slice(&arr[0..0]);
+    ```
 
-     If the slice passed cannot be converted into an array
+     - If the length of the slice is not equal to the dimensions specified by the constant generic
+
+    ```should_panic
+    # use point_nd::PointND;
+    let arr = [0,1,2];
+    let p = PointND::<_, 100>::from_slice(&arr[..]);
+    ```
+
+     - If the slice passed cannot be converted into an array
      */
     pub fn from_slice(slice: &[T]) -> Self {
         let arr: [T; N] = slice.try_into().unwrap();
@@ -486,7 +504,7 @@ impl<T, const N: usize> PointND<T, N>
      If the compiler is not able to infer the dimensions (a.k.a - length)
      of the point, it needs to be explicitly specified
 
-     See the ```from()``` function for cases when generics don't need to be explicitly specified
+     See the ```from_slice()``` function for cases when generics don't need to be explicitly specified
 
      ```
      # use point_nd::PointND;
@@ -494,17 +512,20 @@ impl<T, const N: usize> PointND<T, N>
      let p = PointND::<_, 10>::fill(2);
 
      assert_eq!(p.dims(), 10);
-     for i in p.into_iter() {
-        assert_eq!(i, 2);
-     }
+     assert_eq!(p.into_arr(), [2; 10]);
      ```
 
-     ### Panics
+     # Panics
 
-     If the dimensions of the point being constructed is zero
+     - If the dimensions of the point being constructed is zero
+
+     ```should_panic
+     # use point_nd::PointND;
+     let p = PointND::<_, 0>::fill(10);
+     ```
      */
     pub fn fill(value: T) -> Self {
-        PointND::<T, N>::from_slice(&[value; N])
+        PointND::new([value; N])
     }
 
 }
@@ -771,6 +792,7 @@ impl<T, const N: usize> TryFrom<&[T]> for PointND<T, N>
 
         Ok( PointND(res.unwrap()) )
     }
+
 }
 
 
@@ -781,6 +803,8 @@ impl<T, const N: usize> TryFrom<&[T]> for PointND<T, N>
  Using any identifier apart from the above or multiple identifiers will result in a compile time error.
 
  It is recommended to use parentheses when calling this macro for clarity.
+
+## Possible Variations
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -867,20 +891,29 @@ macro_rules! dim {
 
  It is recommended to use square brackets when calling this macro for clarity
 
+ ## Possible Variations
+
  ```
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dims;
- let dim_arr: [usize; 4] = dims![
-     x,  // 0usize
-     y,  // 1
-     z,  // 2
-     w   // 3
- ];
+ // Explicitly specify items in array
+ let arr =  dims![x, y, z, w];
+ assert_eq!(arr, [0, 1, 2, 3]);
 
- // Using identifiers multiple times is allowed,
- //  it's only a more readable way to specify indexes after all
- let index_arr = dims![x,x, y,y, z,z];
- assert_eq!(index_arr, [0,0, 1,1, 2,2usize]);
+ // Copy specified item N times
+ let arr =  dims![w; 5];
+ assert_eq!(arr, [3, 3, 3, 3, 3]);
+ # }
+ ```
+
+ Using identifiers multiple times is allowed, this is only
+ a more readable way to specify indexes after all
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::dims;
+ let index_arr =  dims![x,x, y,y, z,z];
+ assert_eq!(index_arr, [0,0, 1,1, 2,2]);
  # }
  ```
 
