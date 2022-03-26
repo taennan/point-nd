@@ -738,6 +738,11 @@ impl<T> PointND<T, 4>
 
 
 // TryFrom
+pub enum ConstructionError {
+    ZeroDimensions,
+    TryFromSlice(TryFromSliceError),
+}
+
 //  Array
 impl<T, const N: usize> TryFrom<[T; N]> for PointND<T, N> {
     type Error = ();
@@ -747,11 +752,6 @@ impl<T, const N: usize> TryFrom<[T; N]> for PointND<T, N> {
         }
         Ok( PointND(array) )
     }
-}
-
-pub enum ConstructionError {
-    ZeroDimensions,
-    TryFromSlice(TryFromSliceError),
 }
 
 //  Slice
