@@ -866,7 +866,11 @@ macro_rules! dim {
 #[macro_export]
 macro_rules! dims {
 
+    // [x, y, y, z]
     ( $( $d:ident ), * ) => { [ $( dim!($d), )* ] };
+
+    // [z; 3]
+    ( $d:ident; $i:expr ) => { [dim!($d); $i] };
 
 }
 
