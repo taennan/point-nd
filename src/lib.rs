@@ -15,6 +15,9 @@ use core::ops::{Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAs
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
 
+use core::fmt::Debug;
+use arrayvec::ArrayVec;
+
 /**
 
 The whole _point_ of the crate.
@@ -220,9 +223,9 @@ This is probably best explained with an example:
 // A trivial transformation more easily done via other methods...
 //  but it gets the point across
 let p = PointND
-    ::new([0,1,2])                      // Creates a new PointND
-    .apply(|item| Ok( item + 2 ))?      // Adds 2 to each item
-    .apply(|item| Ok( item * 3 ))?;     // Multiplies each item by 3
+    ::new([0,1,2])             // Creates a new PointND
+    .apply(|item| item + 2)    // Adds 2 to each item
+    .apply(|item| item * 3);   // Multiplies each item by 3
 assert_eq!(p.into_arr(), [6, 9, 12]);
 # Ok(())
 # }
@@ -240,13 +243,15 @@ If all goes well, the applier returns an ```Ok``` with the new ```PointND``` as 
 Hopefully the above wasn't confusing, but here's an example just in case:
 
 ```
+// REWRITE EXAMPLE FOR NEW APPLIERS
+/*
 # use point_nd::PointND;
 # fn modifier_creation_example() -> Result<(), ()> {
-// Dividing by zero causes a runtime error,
+// Dividing an f32 by zero causes a runtime error,
 //  so we return an Err if the second arg is zero
-let divide_items = |a: &f32, b: &f32| -> Result<f32, ()> {
+let divide_items = |a: &f32, b: &f32| -> Result<f32, f32> {
     if *b == 0.0 {
-        Err(())
+        Err( f32::INFINITY )
     } else {
         Ok( a / b )
     }
@@ -267,6 +272,7 @@ let result = p1.apply_point(zero_point, divide_items);
 assert!(result.is_err());
 # Ok(())
 # }
+*/
 ```
 
 # Iterating
@@ -338,6 +344,10 @@ impl<T, const N: usize> PointND<T, N> {
         self.0
     }
 
+}
+
+impl<T, const N: usize> PointND<T, N>
+    where T: Debug {
 
     /**
      Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
@@ -345,22 +355,26 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      # fn apply_example() -> Result<(), ()> {
      let p = PointND
-         ::new([0,1,2])                    // Creates a new PointND
-         .apply(|item| Ok( item + 2 ))?    // Adds 2 to each item
-         .apply(|item| Ok( item * 3 ))?;   // Multiplies each item by 3
+         ::new([0,1,2])             // Creates a new PointND
+         .apply(|item| item + 2)    // Adds 2 to each item
+         .apply(|item| item * 3);   // Multiplies each item by 3
      assert_eq!(p.into_arr(), [6, 9, 12]);
      # Ok(())
      # }
      ```
      */
-    pub fn apply<F, E>(mut self, modifier: F) -> Result<Self, E>
-        where F: Fn(&T) -> Result<T, E> {
+    pub fn apply<U, F>(self, modifier: F) -> PointND<U, N>
+        where U: Debug,
+              F: Fn(&T) -> U {
 
+        let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
-            self[i] = modifier(&self[i])?;
+            arr.push(modifier(&self[i]));
         }
 
-        Ok( self )
+        // Safe to unwrap as the constant generics ensure
+        //  the ArrayVec and PointND have equal lengths
+        PointND::new(arr.into_inner().unwrap())
     }
 
     /**
@@ -371,24 +385,25 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      # fn apply_dims_example() -> Result<(), ()> {
      let p = PointND
-         ::new([0,1,2,3,4])                            // Creates a new PointND
-         .apply_dims(&[1,3], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
-         .apply_dims(&[0,2], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
+         ::new([0,1,2,3,4])                        // Creates a PointND
+         .apply_dims(&[1,3], |item| item * 2)      // Multiplies items 1 and 3 by 2
+         .apply_dims(&[0,2], |item| item + 10);    // Adds 10 to items 0 and 2
      assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
      # Ok(())
      # }
      ```
      */
-    pub fn apply_dims<F, E>(mut self, dims: &[usize], modifier: F) -> Result<Self, E>
-        where F: Fn(&T) -> Result<T, ()> {
+    // This one works a little differently from the rest
+    pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Self
+        where F: Fn(&T) -> T {
 
         for i in 0..N {
             if dims.contains(&i) {
-                self[i] = modifier(&self[i])?;
+                self[i] = modifier(&self[i]);
             }
         }
 
-        Ok( self )
+        self
     }
 
     /**
@@ -401,19 +416,27 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      # fn apply_vals_example() -> Result<(), ()> {
      let p = PointND
-         ::new([0,1,2])                             // Creates a new PointND
-         .apply_vals([1,3,5], |a, b| Ok( a + b ))?  // Adds items in point to items in array
-         .apply_vals([2,4,6], |a, b| Ok( a * b ))?; // Multiplies items in point
-                                                    //  to items in array
+         ::new([0,1,2])                      // Creates a new PointND
+         .apply_vals([1,3,5], |a, b| a + b)  // Adds items in point to items in array
+         .apply_vals([2,4,6], |a, b| a * b); // Multiplies items in point to items in array
      assert_eq!(p.into_arr(), [2, 16, 42]);
      # Ok(())
      # }
      ```
      */
-    pub fn apply_vals<F, X, E>(self, values: [X; N], modifier: F) -> Result<Self, E>
-        where F: Fn(&T, &X) -> Result<T, E>  {
+    pub fn apply_vals<U, V, F>(self, values: [U; N], modifier: F) -> PointND<V, N>
+        where U: Debug,
+              V: Debug,
+              F: Fn(&T, &U) -> V  {
 
-        self.apply_point(PointND::new(values), modifier)
+        let mut arr = ArrayVec::<V, N>::new();
+        for i in 0..N {
+            arr.push(modifier(&self[i], &values[i]));
+        }
+
+        // Safe to unwrap as the constant generics ensure
+        //  the ArrayVec and PointND have equal lengths
+        PointND::new(arr.into_inner().unwrap())
     }
 
     /**
@@ -427,23 +450,20 @@ impl<T, const N: usize> PointND<T, N> {
      let p1 = PointND::new([0,9,3,1]);
      let p2 = PointND::fill(10);
      let p3 = PointND
-         ::new([1,2,3,4])                         // Creates a new PointND
-         .apply_point(p1, |a, b| Ok ( a - b ))?   // Subtracts items in p3 with those in p1
-         .apply_point(p2, |a, b| Ok ( a * b ))?;  // Multiplies items in the returned point
-                                                  //  with the items in p2
+         ::new([1,2,3,4])                 // Creates a new PointND
+         .apply_point(p1, |a, b| a - b)   // Subtracts items in p3 with those in p1
+         .apply_point(p2, |a, b| a * b);  // Multiplies items in p3 with those in p2
      assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
      # Ok(())
      # }
      ```
      */
-    pub fn apply_point<F, X, E>(mut self, other: PointND<X, N>, modifier: F) -> Result<Self, E>
-        where F: Fn(&T, &X) -> Result<T, E> {
+    pub fn apply_point<U, V, F>(self, other: PointND<U, N>, modifier: F) -> PointND<V, N>
+        where U: Debug,
+              V: Debug,
+              F: Fn(&T, &U) -> V {
 
-        for i in 0..N {
-            self[i] = modifier(&self[i], &other[i])?;
-        }
-
-        Ok( self )
+        self.apply_vals(other.into_arr(), modifier)
     }
 
 }
@@ -480,7 +500,7 @@ impl<T, const N: usize> PointND<T, N>
     ```should_panic
     # use point_nd::PointND;
     let arr = [0,1,2];
-    let p = PointND::from_slice(&arr[0..0]);
+    let p = PointND::<_, 0>::from_slice(&arr[0..0]);
     ```
 
      - If the length of the slice is not equal to the dimensions specified by the constant generic
@@ -724,7 +744,6 @@ impl<T> PointND<T, 4>  {
 
 }
 
-
 // Convenience Shifters
 impl<T> PointND<T, 1>
     where T: AddAssign {
@@ -926,8 +945,8 @@ macro_rules! dim {
  # fn apply_dims_example() -> Result<(), ()> {
  let p = PointND
      ::new([0,1,2,3])
-     .apply_dims(&dims![y,w], |item| Ok( item * 2  ))?  // Multiplies items 1 and 3 by 2
-     .apply_dims(&dims![x,z], |item| Ok( item + 10 ))?; // Adds 10 to items 0 and 2
+     .apply_dims(&dims![y,w], |item| item * 2)   // Multiplies items 1 and 3 by 2
+     .apply_dims(&dims![x,z], |item| item + 10); // Adds 10 to items 0 and 2
  assert_eq!(p.into_arr(), [10, 2, 20, 6]);
  # Ok(())
  # }
@@ -1130,8 +1149,7 @@ mod tests {
 
             let p = PointND::<u8, 4>
                 ::new(arr)
-                .apply(|a| Ok( a * 2 ))
-                .unwrap();
+                .apply(|a| a * 2);
 
             assert_eq!(p.into_arr(), [0, 2, 4, 6]);
         }
@@ -1140,9 +1158,7 @@ mod tests {
         fn can_apply_dims() {
 
             let p = PointND::new([-2,-1,0,1,2])
-                .apply_dims(&dims![x, w], |item| {
-                    Ok( item - 10 )
-                }).unwrap();
+                .apply_dims(&[0, 3], |item| item - 10);
             assert_eq!(p.into_arr(), [-12,-1, 0, -9, 2]);
         }
 
@@ -1150,16 +1166,14 @@ mod tests {
         fn can_apply_vals() {
 
             let p = PointND::new([0,1,2])
-                .apply_vals(
-                    [Some(10), None, Some(20)],
-                    |a, b| {
+                .apply_vals([Some(10), None, Some(20)],
+                            |a, b| {
                         if let Some(i) = b {
-                            Ok( a + i )
+                            a + i
                         } else {
-                            Ok( *a )
+                            *a
                         }
-                    }
-                ).unwrap();
+                    });
             assert_eq!(p.into_arr(), [10, 1, 22]);
         }
 
@@ -1168,7 +1182,7 @@ mod tests {
 
             let p1 = PointND::new([0, 1, 2, 3]);
             let p2 = PointND::new([0, -1, -2, -3]);
-            let p3 = p1.apply_point(p2, |a, b| Ok( a - b )).unwrap();
+            let p3 = p1.apply_point(p2, |a, b| a - b );
             assert_eq!(p3.into_arr(), [0, 2, 4, 6]);
         }
 
@@ -1181,17 +1195,15 @@ mod tests {
             let p = PointND
                 ::new([X::A, X::B, X::C])
                 .apply(|x| {
-                    let new = match x {
+                    match x {
                         X::A => X::B,
                         X::B => X::C,
                         X::C => X::A,
-                    };
-                    Ok( new )
-                }).unwrap();
+                    }
+                });
 
             assert_eq!(p.into_arr(), [X::B, X::C, X::A]);
         }
-
     }
 
     #[cfg(test)]
@@ -1575,10 +1587,10 @@ mod tests {
 
             let p = PointND
                 ::new([0,1,2])
-                .apply_dims(&dims![x,y], |item| Ok( item + 10 ))
-                .unwrap();
+                .apply_dims(&dims![x,y], |item| item + 10);
             assert_eq!(p.into_arr(), [10, 11, 2]);
         }
+
         #[test]
         fn can_repeat_identifier_in_dims() {
             assert_eq!(dims![x,x,x], [0,0,0]);
