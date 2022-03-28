@@ -14,7 +14,6 @@ See the ```PointND``` struct for basic usage
 use core::ops::{Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg };
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
-
 use core::fmt::Debug;
 use arrayvec::ArrayVec;
 
@@ -344,10 +343,6 @@ impl<T, const N: usize> PointND<T, N> {
         self.0
     }
 
-}
-
-impl<T, const N: usize> PointND<T, N>
-    where T: Debug {
 
     /**
      Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
@@ -364,17 +359,18 @@ impl<T, const N: usize> PointND<T, N>
      ```
      */
     pub fn apply<U, F>(self, modifier: F) -> PointND<U, N>
-        where U: Debug,
-              F: Fn(&T) -> U {
+        where F: Fn(&T) -> U {
 
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
             arr.push(modifier(&self[i]));
         }
 
-        // Safe to unwrap as the constant generics ensure
+        // Quite safe as the constant generics ensure
         //  the ArrayVec and PointND have equal lengths
-        PointND::new(arr.into_inner().unwrap())
+        unsafe {
+            PointND::new(arr.into_inner_unchecked())
+        }
     }
 
     /**
@@ -424,19 +420,19 @@ impl<T, const N: usize> PointND<T, N>
      # }
      ```
      */
-    pub fn apply_vals<U, V, F>(self, values: [U; N], modifier: F) -> PointND<V, N>
-        where U: Debug,
-              V: Debug,
-              F: Fn(&T, &U) -> V  {
+    pub fn apply_vals<U, V, F>(self, values: [V; N], modifier: F) -> PointND<U, N>
+        where F: Fn(&T, &V) -> U  {
 
-        let mut arr = ArrayVec::<V, N>::new();
+        let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
             arr.push(modifier(&self[i], &values[i]));
         }
 
-        // Safe to unwrap as the constant generics ensure
+        // Quite safe as the constant generics ensure
         //  the ArrayVec and PointND have equal lengths
-        PointND::new(arr.into_inner().unwrap())
+        unsafe {
+            PointND::new(arr.into_inner_unchecked())
+        }
     }
 
     /**
@@ -458,15 +454,14 @@ impl<T, const N: usize> PointND<T, N>
      # }
      ```
      */
-    pub fn apply_point<U, V, F>(self, other: PointND<U, N>, modifier: F) -> PointND<V, N>
-        where U: Debug,
-              V: Debug,
-              F: Fn(&T, &U) -> V {
+    pub fn apply_point<U, V, F>(self, other: PointND<V, N>, modifier: F) -> PointND<U, N>
+        where F: Fn(&T, &V) -> U {
 
         self.apply_vals(other.into_arr(), modifier)
     }
 
 }
+
 
 impl<T, const N: usize> PointND<T, N>
     where T: Clone + Copy {
