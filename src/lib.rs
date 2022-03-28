@@ -368,9 +368,31 @@ impl<T, const N: usize> PointND<T, N> {
 
         // Quite safe as the constant generics ensure
         //  the ArrayVec and PointND have equal lengths
+        // Did not use into_inner().unwrap(), as
+        //  it forces the items to implement Debug
         unsafe {
             PointND::new(arr.into_inner_unchecked())
         }
+
+        /*
+         * Another method allowing items to
+         * be passed by value to the closure
+         *
+
+        let mut arr = ArrayVec::<U, N>::new();
+        let mut self_ = ArrayVec::from(self.into_arr());
+        // Need to reverse as we'll be popping from the back of the array
+        self_.reverse();
+
+        for _ in 0..N {
+            // Items CANNOT be iterated, only popped
+            let item = self_.pop().unwrap();
+            let item = modifier(&item);
+            arr.push(item);
+        }
+
+        unsafe { PointND::new(arr.into_inner_unchecked()) }
+         */
     }
 
     /**
