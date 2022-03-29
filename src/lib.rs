@@ -345,17 +345,28 @@ impl<T, const N: usize> PointND<T, N> {
 
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` to create a new ```PointND```
+     Consumes ```self``` and calls the ```modifier``` on each
+    item contained by ```self``` to create a new ```PointND```.
+
      ```
      # use point_nd::PointND;
-     # fn apply_example() -> Result<(), ()> {
      let p = PointND
          ::new([0,1,2])             // Creates a new PointND
          .apply(|item| item + 2)    // Adds 2 to each item
          .apply(|item| item * 3);   // Multiplies each item by 3
      assert_eq!(p.into_arr(), [6, 9, 12]);
-     # Ok(())
-     # }
+     ```
+
+     The return type of the ```modifier``` does not necessarily have to be
+     the same as the type of the items passed to it. This means that ```apply```
+     can create a new point with items of a different type, but the same length.
+
+     ```
+     # use point_nd::PointND;
+     let p = PointND
+         ::new([0,1,2])                // Creates a new PointND
+         .apply(|item| *item as f32);  // Converts items to float
+     assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
      */
     pub fn apply<U, F>(self, modifier: F) -> PointND<U, N>
@@ -396,20 +407,22 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on the items at the specified ```dims``` to create a new ```PointND```
+     Consumes ```self``` and calls the ```modifier``` on the
+     items at the specified ```dims``` to create a new ```PointND```
 
      Any items at dimensions not specified will be passed to the new point without change
+
      ```
      # use point_nd::PointND;
-     # fn apply_dims_example() -> Result<(), ()> {
      let p = PointND
          ::new([0,1,2,3,4])                        // Creates a PointND
          .apply_dims(&[1,3], |item| item * 2)      // Multiplies items 1 and 3 by 2
          .apply_dims(&[0,2], |item| item + 10);    // Adds 10 to items 0 and 2
      assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
-     # Ok(())
-     # }
      ```
+
+     Unlike some other apply methods, this ```apply_dims()``` cannot return
+     a ```PointND``` with items of a different type from the original.
      */
     // This one works a little differently from the rest
     pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Self
@@ -426,20 +439,31 @@ impl<T, const N: usize> PointND<T, N> {
 
     /**
      Consumes ```self``` and calls the ```modifier``` on each item contained
-     by ```self``` and ```values``` to create a new ```PointND```
+     by ```self``` and ```values``` to create a new ```PointND```.
+
+     
 
      When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**
+     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**.
      ```
      # use point_nd::PointND;
-     # fn apply_vals_example() -> Result<(), ()> {
      let p = PointND
          ::new([0,1,2])                      // Creates a new PointND
          .apply_vals([1,3,5], |a, b| a + b)  // Adds items in point to items in array
          .apply_vals([2,4,6], |a, b| a * b); // Multiplies items in point to items in array
      assert_eq!(p.into_arr(), [2, 16, 42]);
-     # Ok(())
-     # }
+     ```
+
+     The return type of the ```modifier``` does not necessarily have to be
+     the same as the type of the items passed to it. This means that ```apply```
+     can create a new point with items of a different type, but the same length.
+
+     ```
+     # use point_nd::PointND;
+     let p = PointND
+         ::new([0,1,2])                // Creates a new PointND
+         .apply_vals([]|item| *item as f32);  // Converts items to float
+     assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
      */
     pub fn apply_vals<U, V, F>(self, values: [V; N], modifier: F) -> PointND<U, N>
