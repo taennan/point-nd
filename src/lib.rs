@@ -21,10 +21,10 @@ use arrayvec::ArrayVec;
 
 The whole _point_ of the crate.
 
-The ```PointND``` struct is really just a boxed array with
+The ```PointND``` struct is really just a smart pointer to an array with
 convenience methods for accessing, setting and transforming values.
 
-Therefore, all methods implemented for arrays are available with this.
+As the struct dereferences to a slice, all methods for slices are available with this.
 
 # Making a Point
 
@@ -97,7 +97,7 @@ The above methods are not implemented for ```PointND```'s with more than 4 dimen
 
 Instead, we must use the native implementations of the contained array
 
-```rust
+```
 # use point_nd::PointND;
 # use point_nd::{dim, dimr};
 let p = PointND::new([0,1,2,3,4,5]);
@@ -218,7 +218,6 @@ This is probably best explained with an example:
 
 ```
 # use point_nd::PointND;
-# fn apply_example() -> Result<(), ()> {
 // A trivial transformation more easily done via other methods...
 //  but it gets the point across
 let p = PointND
@@ -226,59 +225,15 @@ let p = PointND
     .apply(|item| item + 2)    // Adds 2 to each item
     .apply(|item| item * 3);   // Multiplies each item by 3
 assert_eq!(p.into_arr(), [6, 9, 12]);
-# Ok(())
-# }
 ```
 
-The function or closure passed to the applier methods must all return a ```Result<T, ()>```
-(where ```T``` is the type of the items contained by the point) to allow graceful error
-handling by the applier instead of just panicking.
-
-If an ```Err(())``` is thrown by the closure when called
-on any item, the applier also returns ```Err(())```
-
-If all goes well, the applier returns an ```Ok``` with the new ```PointND``` as it's value
-
-Hopefully the above wasn't confusing, but here's an example just in case:
-
-```
-// REWRITE EXAMPLE FOR NEW APPLIERS
-/*
-# use point_nd::PointND;
-# fn modifier_creation_example() -> Result<(), ()> {
-// Dividing an f32 by zero causes a runtime error,
-//  so we return an Err if the second arg is zero
-let divide_items = |a: &f32, b: &f32| -> Result<f32, f32> {
-    if *b == 0.0 {
-        Err( f32::INFINITY )
-    } else {
-        Ok( a / b )
-    }
-};
-
-let p1 = PointND::new([-1.2, 2.0, -3.0, 4.5]);
-let p2 = PointND::new([2.3,  9.0, -3.0, 1.0]);
-let zero_point = PointND::fill(0.0);
-
-// Divides each item in p1 with each in p2
-let result = p1.clone().apply_point(p2, divide_items);
-// No zeros in p2, so everything's Ok
-assert!(result.is_ok());
-
-// Divides each item in p1 with each in zero_point
-let result = p1.apply_point(zero_point, divide_items);
-// Error is thrown by divide_items, causing apply_point() to throw
-assert!(result.is_err());
-# Ok(())
-# }
-*/
-```
+Each applier has it's own subtle differences, it is recommended to read the documentation for each of them
 
 # Iterating
 
 Iterating over a ```PointND``` is as easy as:
 
-```rust
+```
 # use point_nd::PointND;
 let mut p = PointND::new([0,1]);
 
@@ -345,8 +300,8 @@ impl<T, const N: usize> PointND<T, N> {
 
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on each
-    item contained by ```self``` to create a new ```PointND```.
+     Consumes ```self``` and calls the ```modifier``` on each item contained
+     by ```self``` to create a new ```PointND``` of the same length.
 
      ```
      # use point_nd::PointND;
@@ -369,8 +324,8 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
      */
-    pub fn apply<U, F>(self, modifier: F) -> PointND<U, N>
-        where F: Fn(&T) -> U {
+    pub fn apply<U>(self, modifier: fn(&T) -> U) -> PointND<U, N>
+        {
 
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
@@ -407,8 +362,8 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on the
-     items at the specified ```dims``` to create a new ```PointND```
+     Consumes ```self``` and calls the ```modifier``` on the items at the
+     specified ```dims``` to create a new ```PointND``` of the same length.
 
      Any items at dimensions not specified will be passed to the new point without change
 
@@ -418,15 +373,14 @@ impl<T, const N: usize> PointND<T, N> {
          ::new([0,1,2,3,4])                        // Creates a PointND
          .apply_dims(&[1,3], |item| item * 2)      // Multiplies items 1 and 3 by 2
          .apply_dims(&[0,2], |item| item + 10);    // Adds 10 to items 0 and 2
-     assert_eq!(p.into_arr(), [10, 2, 20, 6, 4]);
+     assert_eq!(p.into_arr(), [10, 2, 12, 6, 4]);
      ```
 
-     Unlike some other apply methods, this ```apply_dims()``` cannot return
+     Unlike some other apply methods, this ```apply_dims``` cannot return
      a ```PointND``` with items of a different type from the original.
      */
     // This one works a little differently from the rest
-    pub fn apply_dims<F>(mut self, dims: &[usize], modifier: F) -> Self
-        where F: Fn(&T) -> T {
+    pub fn apply_dims(mut self, dims: &[usize], modifier: fn(&T) -> T) -> Self {
 
         for i in 0..N {
             if dims.contains(&i) {
@@ -438,13 +392,16 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained
-     by ```self``` and ```values``` to create a new ```PointND```.
+     Consumes ```self``` and calls the ```modifier``` on each item contained by
+    ```self``` and ```values``` to create a new ```PointND``` of the same length.
 
-     
+     As this method may modify every value in the original point,
+     the ```values``` array must be the same length as the point.
 
-     When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```value``` through the **second**.
+     When creating a modifier function to be used by this method, keep
+     in mind that the items in ```self``` are passed to it through the
+     **first arg**, and the items in ```value``` through the **second**.
+
      ```
      # use point_nd::PointND;
      let p = PointND
@@ -454,20 +411,36 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.into_arr(), [2, 16, 42]);
      ```
 
-     The return type of the ```modifier``` does not necessarily have to be
-     the same as the type of the items passed to it. This means that ```apply```
-     can create a new point with items of a different type, but the same length.
+     Neither the return type of the ```modifier``` nor the type of the items contained
+     by the ```values``` array necessarily have to be the same as the item type of the
+     original point. This means that ```apply_vals``` can create a new point with items
+     of a different type, but the same length.
 
      ```
      # use point_nd::PointND;
+
+     enum Op {
+        Add,
+        Sub,
+     }
+
      let p = PointND
-         ::new([0,1,2])                // Creates a new PointND
-         .apply_vals([]|item| *item as f32);  // Converts items to float
-     assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
+         ::new([0,1,2])
+         // This will add or subtract 10 depending on
+         //  the operation specified then convert to float
+         .apply_vals(
+             [Op::Add, Op::Sub, Op::Add],
+             |a, b| {
+                 match b {
+                     Op::Add => (a + 10) as f32,
+                     Op::Sub => (a - 10) as f32
+                 }
+             }
+         );
+     assert_eq!(p.into_arr(), [10.0, -9.0, 12.0]);
      ```
      */
-    pub fn apply_vals<U, V, F>(self, values: [V; N], modifier: F) -> PointND<U, N>
-        where F: Fn(&T, &V) -> U  {
+    pub fn apply_vals<U, V>(self, values: [V; N], modifier: fn(&T, &V) -> U) -> PointND<U, N> {
 
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
@@ -482,13 +455,15 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by ```self``` and another ```PointND``` to create a new point
+     Consumes ```self``` and calls the ```modifier``` on each item contained by
+     ```self``` and another ```PointND``` to create a new point of the same length.
 
-     When creating a modifier function to be used by this method, keep in mind that the items in
-     ```self``` are passed to it through the **first arg**, and the items in ```other``` through the **second**
+     When creating a modifier function to be used by this method, keep
+     in mind that the items in ```self``` are passed to it through the
+     **first arg**, and the items in ```other``` through the **second**.
+
      ```
      # use point_nd::PointND;
-     # fn apply_point_example() -> Result<(), ()> {
      let p1 = PointND::new([0,9,3,1]);
      let p2 = PointND::fill(10);
      let p3 = PointND
@@ -496,12 +471,14 @@ impl<T, const N: usize> PointND<T, N> {
          .apply_point(p1, |a, b| a - b)   // Subtracts items in p3 with those in p1
          .apply_point(p2, |a, b| a * b);  // Multiplies items in p3 with those in p2
      assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
-     # Ok(())
-     # }
      ```
+
+     Neither the return type of the ```modifier``` nor the type of the items
+     contained by the ```other``` point necessarily have to be  the same as
+     the type of the items in the original point. This means that ```apply_point```
+     can create a new point with items of a different type, but the same length.
      */
-    pub fn apply_point<U, V, F>(self, other: PointND<V, N>, modifier: F) -> PointND<U, N>
-        where F: Fn(&T, &V) -> U {
+    pub fn apply_point<U, V>(self, other: PointND<V, N>, modifier: fn(&T, &V) -> U) -> PointND<U, N> {
 
         self.apply_vals(other.into_arr(), modifier)
     }
@@ -544,15 +521,14 @@ impl<T, const N: usize> PointND<T, N>
     let p = PointND::<_, 0>::from_slice(&arr[0..0]);
     ```
 
-     - If the length of the slice is not equal to the dimensions specified by the constant generic
+     - If the slice passed cannot be converted into an array
 
     ```should_panic
     # use point_nd::PointND;
     let arr = [0,1,2];
+    // ERROR: Cannot convert slice of [i32; 3] to [i32; 100]
     let p = PointND::<_, 100>::from_slice(&arr[..]);
     ```
-
-     - If the slice passed cannot be converted into an array
      */
     pub fn from_slice(slice: &[T]) -> Self {
         let arr: [T; N] = slice.try_into().unwrap();
@@ -1106,6 +1082,64 @@ macro_rules! dimr {
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    #[cfg(test)]
+    mod fn_point {
+        use super::*;
+
+        #[test]
+        fn apply() {
+
+            let add_ten = |i: &i32| *i + 10;
+            let double = |i: &i32| *i * 2;
+            let sum = |a: &i32, b: &i32| a + b;
+
+            let p1 = PointND::new([0,1,2,3,4,5]);
+            let p2 = PointND::new([0,1,2,3,4,5])
+                     // Adds ten to each item
+                     .apply(add_ten)
+                     // Doubles items at indexes 0, 1 and 2
+                     .apply_dims(&[0,1,2], double)
+                     // Does the same thing, just more readable
+                     .apply_dims(&dims![x,y,z], double)
+                     // Adds items in p2 to respective items in p1
+                     .apply_point(p1, sum);
+        }
+
+        #[test]
+        fn a() {
+
+            fn call<F, T>(x: &T, f: F) -> T
+                where F: Fn(&T) -> T {
+                f(x)
+            }
+
+            fn call_twice<T>(x: T, f: fn(&T) -> T) ->  T {
+                let a = f(&x);
+                f(&a)
+            }
+
+            fn double(x: &i32) -> i32 {
+                *x * 2
+            }
+
+            let a = call(&10, double);
+            assert_eq!(a, 20);
+
+            let a = call_twice(5, double);
+            assert_eq!(a, 20);
+
+            let dub = |x: &i32| -> i32 { *x * 2 };
+            let a = call_twice(5, dub);
+            assert_eq!(a, 20);
+            let a = call_twice(5, dub);
+            assert_eq!(a, 20);
+
+        }
+
+    }
+
+
 
     #[cfg(test)]
     mod iterating {
