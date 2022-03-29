@@ -266,9 +266,6 @@ impl<T, const N: usize> PointND<T, N> {
     ```
      */
     pub fn new(arr: [T; N]) -> Self {
-        if arr.len() == 0 {
-            panic!("Cannot construct PointND with zero dimensions");
-        }
         PointND(arr)
     }
 
@@ -312,8 +309,7 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
      */
-    pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N>
-        {
+    pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
 
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
