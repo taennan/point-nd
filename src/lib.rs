@@ -17,7 +17,6 @@ for use with a Rust version of at least **1.51**
 use core::ops::{Deref, DerefMut, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Neg };
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
-use core::fmt::Debug;
 use arrayvec::ArrayVec;
 
 /**
