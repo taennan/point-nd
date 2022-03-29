@@ -1084,64 +1084,6 @@ mod tests {
     use crate::*;
 
     #[cfg(test)]
-    mod fn_point {
-        use super::*;
-
-        #[test]
-        fn apply() {
-
-            let add_ten = |i: &i32| *i + 10;
-            let double = |i: &i32| *i * 2;
-            let sum = |a: &i32, b: &i32| a + b;
-
-            let p1 = PointND::new([0,1,2,3,4,5]);
-            let p2 = PointND::new([0,1,2,3,4,5])
-                     // Adds ten to each item
-                     .apply(add_ten)
-                     // Doubles items at indexes 0, 1 and 2
-                     .apply_dims(&[0,1,2], double)
-                     // Does the same thing, just more readable
-                     .apply_dims(&dims![x,y,z], double)
-                     // Adds items in p2 to respective items in p1
-                     .apply_point(p1, sum);
-        }
-
-        #[test]
-        fn a() {
-
-            fn call<F, T>(x: &T, f: F) -> T
-                where F: Fn(&T) -> T {
-                f(x)
-            }
-
-            fn call_twice<T>(x: T, f: fn(&T) -> T) ->  T {
-                let a = f(&x);
-                f(&a)
-            }
-
-            fn double(x: &i32) -> i32 {
-                *x * 2
-            }
-
-            let a = call(&10, double);
-            assert_eq!(a, 20);
-
-            let a = call_twice(5, double);
-            assert_eq!(a, 20);
-
-            let dub = |x: &i32| -> i32 { *x * 2 };
-            let a = call_twice(5, dub);
-            assert_eq!(a, 20);
-            let a = call_twice(5, dub);
-            assert_eq!(a, 20);
-
-        }
-
-    }
-
-
-
-    #[cfg(test)]
     mod iterating {
         use super::*;
 
