@@ -9,6 +9,9 @@ for use with a Rust version **>= 1.51**.
 
 ## Basic Usage
 
+As ```PointND``` dereferences to a slice, all methods 
+implemented for slices are also available with this
+
 ### Making a Point
 
 ```rust
@@ -111,26 +114,20 @@ Complex transformations can be made via functions passed to the ```apply```,
 See the documentation for more info.
 
 ```rust
-let add_ten = |item| -> Result<i32, ()> {
-    Ok( item + 10 )
-}
-let sum_nums = |a, b| -> Result<i32, ()> {
-    Ok( a + b )
-}
-let double = |item| -> Result<i32, ()> {
-    Ok( item * 2 )
-}
+let add_ten = |i: &i32| *i + 10;
+let double  = |i: &i32| *i * 2;
+let sum     = |a: &i32, b: &i32| a + b;
 
 let p1 = PointND::new([0,1,2,3,4,5]);
 let p2 = PointND::new([0,1,2,3,4,5])
          // Adds ten to each item
-         .apply(add_ten)?
+         .apply(add_ten)
          // Doubles items at indexes 0, 1 and 2
-         .apply_dims(&[0,1,2], double)?
+         .apply_dims(&[0,1,2], double)
          // Does the same thing, just more readable
-         .apply_dims(&dims![x,y,z], double)?
+         .apply_dims(&dims![x,y,z], double)
          // Adds items in p2 to respective items in p1
-         .apply_point(p1, sum_nums)?;
+         .apply_point(p1, sum);
 ```
 
 ### Iterating
