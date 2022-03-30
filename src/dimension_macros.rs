@@ -38,7 +38,7 @@
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dim;
  # use point_nd::PointND;
- let p = PointND::new([0,1,2]);
+ let p = PointND::from([0,1,2]);
  let y = p[dim!(y)];
  assert_eq!(y, 1);
 
@@ -54,7 +54,7 @@
  # use point_nd::dim;
  # use point_nd::PointND;
  // Works with points of any dimensions
- let five_d_point = PointND::new([0,1,2,3,4]);
+ let five_d_point = PointND::from([0,1,2,3,4]);
  let z = five_d_point[dim!(z)];
  assert_eq!(z, 2);
  # }
@@ -125,14 +125,11 @@ macro_rules! dim {
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dims;
  # use point_nd::PointND;
- # fn apply_dims_example() -> Result<(), ()> {
  let p = PointND
-     ::new([0,1,2,3])
+     ::from([0,1,2,3])
      .apply_dims(&dims![y,w], |item| item * 2)   // Multiplies items 1 and 3 by 2
      .apply_dims(&dims![x,z], |item| item + 10); // Adds 10 to items 0 and 2
- assert_eq!(p.into_arr(), [10, 2, 20, 6]);
- # Ok(())
- # }
+ assert_eq!(p.into_arr(), [10, 2, 12, 6]);
  # }
  ```
  */
@@ -195,7 +192,7 @@ macro_rules! dims {
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dimr;
  # use point_nd::PointND;
- let p = PointND::new([0,1,2,3,4,5]);
+ let p = PointND::from([0,1,2,3,4,5]);
  let slice = &p[dimr!(x..=z)];
  assert_eq!(slice, [0,1,2]);
  # }

@@ -16,6 +16,6 @@ for use with a Rust version of **at least 1.51**
 
 mod dimension_macros;
 mod point;
-mod types;
+mod utils;
 
 pub use point::PointND;
