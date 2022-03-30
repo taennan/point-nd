@@ -928,8 +928,16 @@ impl<T, const N: usize> From<[T; N]> for PointND<T, N> {
 
 }
 
+impl<T, const N: usize> Into<[T; N]> for PointND<T, N>  {
+
+    fn into(self) -> [T; N] {
+        self.into_arr()
+    }
+
+}
+
 impl<T, const N: usize> TryFrom<&[T]> for PointND<T, N>
-    where T: Clone + Copy {
+    where T: Copy {
 
     type Error = TryFromSliceError;
     fn try_from(slice: &[T]) -> Result<Self, Self::Error> {
@@ -979,11 +987,7 @@ mod tests {
     mod constructors {
         use super::*;
 
-        #[test]
-        fn from_works() {
-            let p = PointND::from([0,1,2]);
-            assert_eq!(p.dims(), 3);
-        }
+        // The from() constructor is under tests::from
 
         #[test]
         fn from_slice_works() {
@@ -1119,7 +1123,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn can_contract() {
+        fn can_contract_by() {
             let p = PointND
                 ::from([0,1,2,3])
                 .contract_by(2);
@@ -1129,13 +1133,54 @@ mod tests {
         }
 
         #[test]
+        fn can_contract_by_to_zero() {
+            let p = PointND
+                ::from([0,1,2,3])
+                .contract_by(4);
+
+            assert_eq!(p.dims(), 0);
+            assert_eq!(p.into_arr(), []);
+        }
+
+        #[test]
         #[should_panic]
         fn cannot_contract_beyond_zero() {
             let p = PointND
                 ::from([0,1,2,3])
                 .contract_by(10);
 
+            // Just to silence the type error
             assert_eq!(p.into_arr(), []);
+        }
+
+        #[test]
+        fn can_contract_to() {
+            let p = PointND
+                ::from([0,1,2,3])
+                .contract_to(3);
+
+            assert_eq!(p.dims(), 3);
+            assert_eq!(p.into_arr(), [0,1,2]);
+        }
+
+        #[test]
+        fn can_contract_to_zero() {
+            let p = PointND
+                ::from([0,1,2,3])
+                .contract_to(0);
+
+            assert_eq!(p.dims(), 0);
+            assert_eq!(p.into_arr(), []);
+        }
+
+
+        #[test]
+        #[should_panic]
+        #[allow(unused_variables)]
+        fn cannot_contract_to_more_dimensions() {
+            let p = PointND
+                ::from([0,1,2,3])
+                .contract_to::<1000>(1000);
         }
 
     }
@@ -1319,21 +1364,44 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod try_from {
+    mod from_and_into {
         use super::*;
 
         #[test]
-        #[allow(unused_variables)]
+        fn from_array_works() {
+            let p = PointND::from([0,1,2]);
+            assert_eq!(p.dims(), 3);
+
+            let p: PointND<i32, 4> = [22; 4].into();
+            let p = p.apply(|i| *i / 2);
+            assert_eq!(p.into_arr(), [11; 4]);
+        }
+
+        #[test]
+        fn into_array_works() {
+            let arr: [i32; 3] = PointND::fill(10).into();
+            assert_eq!(arr, [10, 10, 10]);
+        }
+
+    }
+
+    #[cfg(test)]
+    mod try_from_and_try_into {
+        use super::*;
+
+        #[test]
         fn can_try_from_array() {
             let arr = [0,1,2,3,4,5];
             let p: Result<PointND<_, 6>, _> = arr.try_into();
+            assert!(p.is_ok());
         }
 
         #[test]
         #[allow(unused_variables)]
-        fn can_try_from_slice() {
+        fn can_try_from_slice_of_same_len() {
             let slice = &[0,1,2,3,4][..];
             let p: Result<PointND<_, 5>, _> = slice.try_into();
+            assert!(p.is_ok());
         }
 
         #[test]
