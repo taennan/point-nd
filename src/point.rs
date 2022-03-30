@@ -10,7 +10,7 @@ macro_rules! check_transform_cap {
     ( $dims:expr, $method:expr ) => {
         if $dims > MAX_POINT_DIMS {
             panic!(
-                "Attempted to call {} on PointND with more than u32::MAX dimensions. \
+                "Attempted to call {}() on PointND with more than u32::MAX dimensions. \
                 Try reducing the dimensions of the point via the contract_by() or \
                 contract_to() before transforming",
                 $method
@@ -298,6 +298,10 @@ impl<T, const N: usize> PointND<T, N> {
          .apply(|item| *item as f32);  // Converts items to float
      assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
+
+     # Panics
+
+     - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
      */
     pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
 
@@ -415,10 +419,14 @@ impl<T, const N: usize> PointND<T, N> {
          );
      assert_eq!(p.into_arr(), [10.0, -9.0, 12.0]);
      ```
+
+     # Panics
+
+     - If the dimensions of ```self``` or ```values``` are greater than ```u32::MAX```.
      */
     pub fn apply_vals<U, V>(self, values: [V; N], modifier: ApplyValsFn<T, U, V>) -> PointND<U, N> {
 
-        check_transform_cap!(*(&self.dims()), "apply_vals");
+        check_transform_cap!(N, "apply_vals");
 
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
@@ -445,7 +453,7 @@ impl<T, const N: usize> PointND<T, N> {
      let p1 = PointND::from([0,9,3,1]);
      let p2 = PointND::fill(10);
      let p3 = PointND
-         ::from([1,2,3,4])                 // Creates a new PointND
+         ::from([1,2,3,4])                // Creates a new PointND
          .apply_point(p1, |a, b| a - b)   // Subtracts items in p3 with those in p1
          .apply_point(p2, |a, b| a * b);  // Multiplies items in p3 with those in p2
      assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
@@ -455,10 +463,14 @@ impl<T, const N: usize> PointND<T, N> {
      contained by the ```other``` point necessarily have to be  the same as
      the type of the items in the original point. This means that ```apply_point```
      can create a new point with items of a different type, but the same length.
+
+     # Panics
+
+     - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
      */
     pub fn apply_point<U, V>(self, other: PointND<V, N>, modifier: ApplyPointFn<T, U, V>) -> PointND<U, N> {
 
-        check_transform_cap!(*(&self.dims()), "apply_point");
+        check_transform_cap!(N, "apply_point");
 
         self.apply_vals(other.into_arr(), modifier)
     }
@@ -477,8 +489,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      # Panics
 
-     - If the combined dimensions of ```self``` and the length of
-       ```values``` are **greater than**  or **equal to** ```u32::MAX```.
+     - If the combined dimensions of ```self``` and the length of ```values``` are **greater than** ```u32::MAX```.
 
      ```should_panic
      # use point_nd::PointND;
@@ -490,24 +501,10 @@ impl<T, const N: usize> PointND<T, N> {
          ::from([0; N])
          .extend([1; L]);
      ```
-
-     or perhaps...
-
-     ```should_panic
-     # use point_nd::PointND;
-     const N: usize = 0;
-     const L: usize = u32::MAX as usize;
-     const M: usize = N + L;
-
-     let p: PointND<_, M> = PointND
-         ::from([0; N])
-         .extend([1; L]);
-     ```
      */
-    pub fn extend<const M: usize, const L: usize>(self, values: [T; L]) -> PointND<T, M> {
+    pub fn extend<const L: usize, const M: usize>(self, values: [T; L]) -> PointND<T, M> {
 
-        let result_len = values.len() + *(&self.dims());
-        if result_len > MAX_POINT_DIMS {
+        if (L + N) > MAX_POINT_DIMS {
             panic!("Attempted to extend a PointND to more than u32::MAX dimensions. \
                     Try reducing the dimensions of the point via the contract_by() or \
                     contract_to() before calling extend()");
@@ -531,7 +528,7 @@ impl<T, const N: usize> PointND<T, N> {
 
     /**
      Consumes ```self``` and returns a new ```PointND``` with ```dims```
-     less items than the original, leaving the remaining items unchanged.
+     items less than the original, leaving the remaining items unchanged.
 
      This method always removes the rearmost items first.
 
@@ -546,14 +543,14 @@ impl<T, const N: usize> PointND<T, N> {
      # Panics
 
      - If ```dims``` is **greater than** the dimensions of the original
-       point. A.K.A - you cannot have a point with negative dimensions.
+       point (_a.k.a_ - you cannot have a point with negative dimensions).
 
      ```should_panic
      # use point_nd::PointND;
      let p = PointND
         ::from([0,1,2])
         .contract_by(100);
-     # // Just to silence the error
+     # // Just to silence the type error
      # let _p2 = p + PointND::from([0]);
      ```
      */
@@ -577,6 +574,36 @@ impl<T, const N: usize> PointND<T, N> {
         }
     }
 
+    /**
+     Consumes ```self``` and returns a new ```PointND``` which
+     retains only the first ```dims``` items of the original.
+
+     This method always removes the rearmost items first.
+
+     ```
+     # use point_nd::PointND;
+     let p = PointND
+        ::from([0,1,2,3])
+        .contract_to(1);
+     assert_eq!(p.dims(), 1);
+     assert_eq!(p.into_arr(), [0]);
+     ```
+
+     # Panics
+
+     - If ```dims``` is greater than the original dimensions of the point (_a.k.a_ -
+       you cannot shorten the dimensions of a point to more than it had originally).
+
+     ```should_panic
+     # use point_nd::PointND;
+     let p = PointND
+        ::from([0,1,2])
+        .contract_to(52);
+     # // Just to silence the type error
+     # let _p2 = p + PointND::from([0]);
+     ```
+
+     */
     pub fn contract_to<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
         if dims > N {
@@ -1084,8 +1111,6 @@ mod tests {
                 .extend::<0, 0>(arr);
             assert_eq!(zero.dims(), 0);
         }
-
-
 
     }
 

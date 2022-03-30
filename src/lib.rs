@@ -19,3 +19,4 @@ mod point;
 mod utils;
 
 pub use point::PointND;
+pub use utils::{ ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn };
