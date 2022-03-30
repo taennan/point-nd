@@ -5,6 +5,19 @@ use core::array::TryFromSliceError;
 use arrayvec::ArrayVec;
 use crate::utils::*;
 
+// Checks if the dimensions of a point are greater than the max capacity of ArrayVec's
+macro_rules! check_transform_cap {
+    ( $dims:expr, $method:expr ) => {
+        if $dims > MAX_POINT_DIMS {
+            panic!(
+                "Attempted to call {} on PointND with more than u32::MAX dimensions. \
+                Try reducing the dimensions of the point via the contract_by() or \
+                contract_to() before transforming",
+                $method
+            );
+        }
+    };
+}
 
 /**
 
@@ -87,7 +100,7 @@ Instead, we must use the native implementations of the contained array
 let p = PointND::from([0,1,2,3,4,5]);
 
 // ERROR: Not implemented for PointND of 6 dimensions
-// let x = p.x();
+//  let x = p.x();
 
 // Indexing
 let x: i32 = p[0];
@@ -104,7 +117,7 @@ assert_eq!(z_to_last, [2,3,4,5]);
 // The dimension macros provided by this crate can make
 //  direct indexing easier and more readable
 // See their documentation for more info
-let w = p[dim!(z)];
+let z = p[dim!(z)];
 let the_rest = &p[dimr!(w..)];
 ```
 
@@ -205,7 +218,7 @@ This is probably best explained with an example:
 // A trivial transformation more easily done via other methods...
 //  but it gets the point across
 let p = PointND
-    ::from([0,1,2])             // Creates a new PointND
+    ::from([0,1,2])            // Creates a new PointND
     .apply(|item| item + 2)    // Adds 2 to each item
     .apply(|item| item * 3);   // Multiplies each item by 3
 assert_eq!(p.into_arr(), [6, 9, 12]);
@@ -288,6 +301,8 @@ impl<T, const N: usize> PointND<T, N> {
      */
     pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
 
+        check_transform_cap!(N, "apply");
+
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
             arr.push(modifier(&self[i]));
@@ -340,7 +355,7 @@ impl<T, const N: usize> PointND<T, N> {
      Unlike some other apply methods, this ```apply_dims``` cannot return
      a ```PointND``` with items of a different type from the original.
      */
-    // This one works a little differently from the rest
+    // This one works a little differently from the rest as it transforms self in-place
     pub fn apply_dims(mut self, dims: &[usize], modifier: ApplyDimsFn<T>) -> Self {
 
         for i in 0..N {
@@ -403,6 +418,8 @@ impl<T, const N: usize> PointND<T, N> {
      */
     pub fn apply_vals<U, V>(self, values: [V; N], modifier: ApplyValsFn<T, U, V>) -> PointND<U, N> {
 
+        check_transform_cap!(*(&self.dims()), "apply_vals");
+
         let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
             arr.push(modifier(&self[i], &values[i]));
@@ -441,20 +458,64 @@ impl<T, const N: usize> PointND<T, N> {
      */
     pub fn apply_point<U, V>(self, other: PointND<V, N>, modifier: ApplyPointFn<T, U, V>) -> PointND<U, N> {
 
+        check_transform_cap!(*(&self.dims()), "apply_point");
+
         self.apply_vals(other.into_arr(), modifier)
     }
 
+    /**
+     Consumes ```self``` and returns a new ```PointND``` with
+     items from ```values``` appended to items from the original.
 
-    pub fn extend<const M: usize, const L: usize>(self, vals: [T; L]) -> PointND<T, M> {
+     ```
+     # use point_nd::PointND;
+     let p = PointND
+         ::from([0,1])
+         .extend([2,3]);
+      assert_eq!(p.into_arr(), [0,1,2,3]);
+     ```
 
-        let result_len = vals.len() + *(&self.dims());
+     # Panics
+
+     - If the combined dimensions of ```self``` and the length of
+       ```values``` are **greater than**  or **equal to** ```u32::MAX```.
+
+     ```should_panic
+     # use point_nd::PointND;
+     const N: usize = u32::MAX as usize;
+     const L: usize = 1;
+     const M: usize = N + L;
+
+     let p: PointND<_, M> = PointND
+         ::from([0; N])
+         .extend([1; L]);
+     ```
+
+     or perhaps...
+
+     ```should_panic
+     # use point_nd::PointND;
+     const N: usize = 0;
+     const L: usize = u32::MAX as usize;
+     const M: usize = N + L;
+
+     let p: PointND<_, M> = PointND
+         ::from([0; N])
+         .extend([1; L]);
+     ```
+     */
+    pub fn extend<const M: usize, const L: usize>(self, values: [T; L]) -> PointND<T, M> {
+
+        let result_len = values.len() + *(&self.dims());
         if result_len > MAX_POINT_DIMS {
-            panic!("Attempted to extend a PointND to {} dimensions. PointND's are limited to a u32::MAX length ", result_len);
+            panic!("Attempted to extend a PointND to more than u32::MAX dimensions. \
+                    Try reducing the dimensions of the point via the contract_by() or \
+                    contract_to() before calling extend()");
         }
 
         let mut arr = ArrayVec::<T, M>::new();
         let mut tmp_arr1 = ArrayVec::from(self.into_arr());
-        let mut tmp_arr2 = ArrayVec::from(vals);
+        let mut tmp_arr2 = ArrayVec::from(values);
 
         tmp_arr1.reverse();
         tmp_arr2.reverse();
@@ -468,18 +529,46 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
 
+    /**
+     Consumes ```self``` and returns a new ```PointND``` with ```dims```
+     less items than the original, leaving the remaining items unchanged.
+
+     This method always removes the rearmost items first.
+
+     ```
+     # use point_nd::PointND;
+     let p = PointND
+        ::from([0,1,2,3,4])
+        .contract_by(2);
+     assert_eq!(p.into_arr(), [0,1,2]);
+     ```
+
+     # Panics
+
+     - If ```dims``` is **greater than** the dimensions of the original
+       point. A.K.A - you cannot have a point with negative dimensions.
+
+     ```should_panic
+     # use point_nd::PointND;
+     let p = PointND
+        ::from([0,1,2])
+        .contract_by(100);
+     # // Just to silence the error
+     # let _p2 = p + PointND::from([0]);
+     ```
+     */
     // Test these some more, they must have no gotchas
     pub fn contract_by<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
         if dims > N {
-            panic!("Can't contract beyond zero dimensions");
+            panic!("Attempted to contract PointND to less than zero dimensions in a call to the contract_by() method");
         }
 
         let mut arr = ArrayVec::<T, M>::new();
         let mut self_ = ArrayVec::from(self.into_arr());
         self_.reverse();
 
-        for _ in 0..dims {
+        for _ in 0..(N - dims) {
             arr.push(self_.pop().unwrap());
         }
 
@@ -490,11 +579,18 @@ impl<T, const N: usize> PointND<T, N> {
 
     pub fn contract_to<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
+        if dims > N {
+            panic!("Attempted to contract PointND to more dimensions than it had originally. \
+                    Try passing a usize value that is less than the dimensions of the point");
+        }
+
         let mut arr = ArrayVec::<T, M>::new();
         let mut self_ = ArrayVec::from(self.into_arr());
+
+        // Have to reverse as we'll be popping from the back
         self_.reverse();
 
-        for _ in 0..dims {
+        for _ in 0..M {
             arr.push(self_.pop().unwrap());
         }
 
@@ -800,9 +896,6 @@ impl<T> PointND<T, 4>
 impl<T, const N: usize> From<[T; N]> for PointND<T, N> {
 
     fn from(array: [T; N]) -> Self {
-        if N > MAX_POINT_DIMS {
-            panic!("Attempted to create a PointND with {} dimensions. PointND's are limited to a u32::MAX length", array.len());
-        }
         PointND(array)
     }
 
@@ -861,12 +954,6 @@ mod tests {
 
         #[test]
         fn from_works() {
-            let p = PointND::from([0,1,2]);
-            assert_eq!(p.dims(), 3);
-        }
-
-        #[test]
-        fn new_works() {
             let p = PointND::from([0,1,2]);
             assert_eq!(p.dims(), 3);
         }
@@ -998,6 +1085,14 @@ mod tests {
             assert_eq!(zero.dims(), 0);
         }
 
+
+
+    }
+
+    #[cfg(test)]
+    mod contractors {
+        use super::*;
+
         #[test]
         fn can_contract() {
             let p = PointND
@@ -1009,7 +1104,7 @@ mod tests {
         }
 
         #[test]
-        #[should_panic(expected = "Can't contract beyond zero dimensions")]
+        #[should_panic]
         fn cannot_contract_beyond_zero() {
             let p = PointND
                 ::from([0,1,2,3])
