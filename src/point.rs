@@ -62,9 +62,13 @@ let p: PointND<_, 3> = PointND::from_slice(&vec);
 
 // Creating a 4D point with all values set to 5
 let p: PointND<i32, 4> = PointND::fill(5);
+
+// You can even construct a PointND with zero dimensions
+//  ...but what's the point in that?
+let p: PointND<i32, 0> = PointND::from([]);
 ```
 
-The second generic arg is a ```usize``` constant generic and for the ```fill()```
+The second generic is a ```usize``` constant generic and for the ```fill()```
 and ```from_slice()``` functions, specifying it is sometimes necessary when the
 compiler cannot infer it itself.
 
@@ -268,6 +272,17 @@ for _ in p.into_arr().into_iter() { /* Move stuff */ }
 // ERROR: Can't access moved value
 // assert_eq!(p.dims(), 2);
 ```
+
+# Things (not strictly necessary) to Note
+
+As stated earlier, certain methods for accessing and setting the values contained by a ```PointND```
+are only implemented for points within **1..=4** dimensions.
+
+This was done to ensure that the compiler could check if out of index values were being accessed.
+If it these methods were implemented for ```PointND```'s of any dimension, these errors would have
+to be caught at runtime.
+
+This was done to mirror the behaviour of arrays as closely as possible.
  */
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PointND<T, const N: usize>([T; N]);
@@ -674,6 +689,85 @@ impl<T, const N: usize> DerefMut for PointND<T, N> {
 }
 
 
+// Convenience Getters and Setters
+/// Functions for safely getting and setting the value contained by a 1D ```PointND```
+impl<T> PointND<T, 1> {
+
+    pub fn x(&self) -> &T { &self[0] }
+
+    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
+
+}
+/// Functions for safely getting and setting the values contained by a 2D ```PointND```
+impl<T> PointND<T, 2> {
+
+    pub fn x(&self) -> &T { &self[0] }
+    pub fn y(&self) -> &T { &self[1] }
+
+    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
+    pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
+
+}
+/// Functions for safely getting and setting the values contained by a 3D ```PointND```
+impl<T> PointND<T, 3>  {
+
+    pub fn x(&self) -> &T { &self[0] }
+    pub fn y(&self) -> &T { &self[1] }
+    pub fn z(&self) -> &T { &self[2] }
+
+    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
+    pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
+    pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
+
+}
+/// Functions for safely getting and setting the values contained by a 4D ```PointND```
+impl<T> PointND<T, 4>  {
+
+    pub fn x(&self) -> &T { &self[0] }
+    pub fn y(&self) -> &T { &self[1] }
+    pub fn z(&self) -> &T { &self[2] }
+    pub fn w(&self) -> &T { &self[3] }
+
+    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
+    pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
+    pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
+    pub fn set_w(&mut self, new_value: T) { self[3] = new_value; }
+
+}
+
+// Convenience Shifters
+impl<T> PointND<T, 1>
+    where T: AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+
+}
+impl<T> PointND<T, 2>
+    where T: AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
+
+}
+impl<T> PointND<T, 3>
+    where T: AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
+    pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
+
+}
+impl<T> PointND<T, 4>
+    where T: AddAssign {
+
+    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
+    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
+    pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
+    pub fn shift_w(&mut self, delta: T) { self[3] += delta; }
+
+}
+
+
 // Math operators
 //  Negation
 impl<T, const N: usize> Neg for PointND<T, N>
@@ -799,85 +893,6 @@ impl<T, const N: usize> DivAssign for PointND<T, N>
             self[i] /= rhs[i].clone();
         }
     }
-
-}
-
-
-// Convenience Getters and Setters
-/// Functions for safely getting and setting the value contained by a 1D ```PointND```
-impl<T> PointND<T, 1> {
-
-    pub fn x(&self) -> &T { &self[0] }
-
-    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
-
-}
-/// Functions for safely getting and setting the values contained by a 2D ```PointND```
-impl<T> PointND<T, 2> {
-
-    pub fn x(&self) -> &T { &self[0] }
-    pub fn y(&self) -> &T { &self[1] }
-
-    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
-    pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
-
-}
-/// Functions for safely getting and setting the values contained by a 3D ```PointND```
-impl<T> PointND<T, 3>  {
-
-    pub fn x(&self) -> &T { &self[0] }
-    pub fn y(&self) -> &T { &self[1] }
-    pub fn z(&self) -> &T { &self[2] }
-
-    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
-    pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
-    pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
-
-}
-/// Functions for safely getting and setting the values contained by a 4D ```PointND```
-impl<T> PointND<T, 4>  {
-
-    pub fn x(&self) -> &T { &self[0] }
-    pub fn y(&self) -> &T { &self[1] }
-    pub fn z(&self) -> &T { &self[2] }
-    pub fn w(&self) -> &T { &self[3] }
-
-    pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
-    pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
-    pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
-    pub fn set_w(&mut self, new_value: T) { self[3] = new_value; }
-
-}
-
-// Convenience Shifters
-impl<T> PointND<T, 1>
-    where T: AddAssign {
-
-    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
-
-}
-impl<T> PointND<T, 2>
-    where T: AddAssign {
-
-    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
-    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
-
-}
-impl<T> PointND<T, 3>
-    where T: AddAssign {
-
-    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
-    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
-    pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
-
-}
-impl<T> PointND<T, 4>
-    where T: AddAssign {
-
-    pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
-    pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
-    pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
-    pub fn shift_w(&mut self, delta: T) { self[3] += delta; }
 
 }
 
