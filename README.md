@@ -114,9 +114,9 @@ Complex transformations can be made via functions passed to the ```apply```,
 See the documentation for more info.
 
 ```rust
-let add_ten = |i: &i32| *i + 10;
-let double  = |i: &i32| *i * 2;
-let sum     = |a: &i32, b: &i32| a + b;
+let add_ten = |i: i32| i + 10;
+let double  = |i: i32| i * 2;
+let sum     = |a: i32, b: i32| a + b;
 
 let p1 = PointND::new([0,1,2,3,4,5]);
 let p2 = PointND::new([0,1,2,3,4,5])

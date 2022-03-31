@@ -20,6 +20,19 @@ macro_rules! check_transform_cap {
     };
 }
 
+// For use ONLY within the apply, extend and contract methods as their constant
+//  generics ensure that the ArrayVec is always filled with initialised values
+// Converts ArrayVec<T,N> into [T;N] unsafely
+macro_rules! arrvec_into_inner {
+    ($arrvec:expr, $method:expr) => {
+        match $arrvec.into_inner() {
+            Ok(arr) => PointND::from(arr),
+            _ => panic!("Couldn't convert ArrayVec into array in {}() method. \
+                         This operation should never have panicked. Please contact \
+                         the maintainers of PointND if troubles persist", $method)
+        }
+    };
+}
 
 /**
 
@@ -284,8 +297,8 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      let p = PointND
          ::from([0,1,2])             // Creates a new PointND
-         .apply(|item| item + 2)    // Adds 2 to each item
-         .apply(|item| item * 3);   // Multiplies each item by 3
+         .apply(|item| item + 2)     // Adds 2 to each item
+         .apply(|item| item * 3);    // Multiplies each item by 3
      assert_eq!(p.into_arr(), [6, 9, 12]);
      ```
 
@@ -297,19 +310,19 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      let p = PointND
          ::from([0,1,2])                // Creates a new PointND
-         .apply(|item| *item as f32);  // Converts items to float
+         .apply(|item| item as f32);    // Converts items to float
      assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
 
      # Panics
 
-     - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
+     - If the dimensions of ```self``` are greater than ```u32::MAX```.
      */
     pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
 
         check_transform_cap!(N, "apply");
 
-        let mut arr = ArrayVec::<U, N>::new();
+        let mut arr_v = ArrayVec::<U, N>::new();
         let mut self_ = ArrayVec::from(self.into_arr());
         // Need to reverse as we'll be popping from the back of the array
         self_.reverse();
@@ -318,30 +331,10 @@ impl<T, const N: usize> PointND<T, N> {
             // Items CANNOT be iterated, only popped
             let item = self_.pop().unwrap();
             let item = modifier(item);
-            arr.push(item);
+            arr_v.push(item);
         }
 
-        unsafe { PointND::from(arr.into_inner_unchecked()) }
-
-        /*
-         * Another method allowing items to
-         * be passed by value to the closure
-         *
-
-        let mut arr = ArrayVec::<U, N>::new();
-        for i in 0..N {
-            arr.push(modifier(&self[i]));
-        }
-
-        // Quite safe as the constant generics ensure
-        //  the ArrayVec and PointND have equal lengths
-        // Did not use into_inner().unwrap(), as
-        //  it forces the items to implement Debug
-        unsafe {
-            PointND::from(arr.into_inner_unchecked())
-        }
-
-         */
+        arrvec_into_inner!(arr_v, "apply")
     }
 
     /**
@@ -353,7 +346,7 @@ impl<T, const N: usize> PointND<T, N> {
      ```
      # use point_nd::PointND;
      let p = PointND
-         ::from([0,1,2,3,4])                        // Creates a PointND
+         ::from([0,1,2,3,4])                       // Creates a PointND
          .apply_dims(&[1,3], |item| item * 2)      // Multiplies items 1 and 3 by 2
          .apply_dims(&[0,2], |item| item + 10);    // Adds 10 to items 0 and 2
      assert_eq!(p.into_arr(), [10, 2, 12, 6, 4]);
@@ -361,17 +354,30 @@ impl<T, const N: usize> PointND<T, N> {
 
      Unlike some other apply methods, this ```apply_dims``` cannot return
      a ```PointND``` with items of a different type from the original.
+
+     # Panics
+
+     - If the dimensions of ```self``` are greater than ```u32::MAX```.
      */
-    // This one works a little differently from the rest as it transforms self in-place
-    pub fn apply_dims(mut self, dims: &[usize], modifier: ApplyDimsFn<T>) -> Self {
+    pub fn apply_dims(self, dims: &[usize], modifier: ApplyDimsFn<T>) -> Self {
+
+        check_transform_cap!(N, "apply_dims");
+
+        let mut arr_v = ArrayVec::<T, N>::new();
+        let mut self_ = ArrayVec::from(self.into_arr());
+        // Need to reverse as we'll be popping from the back of the array
+        self_.reverse();
 
         for i in 0..N {
+            let item = self_.pop().unwrap();
             if dims.contains(&i) {
-                self[i] = modifier(&self[i]);
+                arr_v.push(modifier(item));
+            } else {
+                arr_v.push(item);
             }
         }
 
-        self
+        arrvec_into_inner!(arr_v, "apply_dims")
     }
 
     /**
@@ -401,24 +407,25 @@ impl<T, const N: usize> PointND<T, N> {
 
      ```
      # use point_nd::PointND;
-
      enum Op {
         Add,
         Sub,
      }
 
+    // Adds or subtracts 10 from 'a' depending on the
+    //  operation specified in 'b', then converts to float
+    let add_or_sub = |a, b| {
+        match b {
+            Op::Add => (a + 10) as f32,
+            Op::Sub => (a - 10) as f32
+        }
+    };
+
      let p = PointND
          ::from([0,1,2])
-         // This will add or subtract 10 depending on
-         //  the operation specified then convert to float
          .apply_vals(
              [Op::Add, Op::Sub, Op::Add],
-             |a, b| {
-                 match b {
-                     Op::Add => (a + 10) as f32,
-                     Op::Sub => (a - 10) as f32
-                 }
-             }
+             add_or_sub
          );
      assert_eq!(p.into_arr(), [10.0, -9.0, 12.0]);
      ```
@@ -431,16 +438,21 @@ impl<T, const N: usize> PointND<T, N> {
 
         check_transform_cap!(N, "apply_vals");
 
-        let mut arr = ArrayVec::<U, N>::new();
-        for i in 0..N {
-            arr.push(modifier(&self[i], &values[i]));
+        let mut arr_v = ArrayVec::<U, N>::new();
+        let mut vals = ArrayVec::from(values);
+        let mut self_ = ArrayVec::from(self.into_arr());
+
+        // Need to reverse as we'll be popping from the back of the arrays
+        vals.reverse();
+        self_.reverse();
+
+        for _ in 0..N {
+            let a = self_.pop().unwrap();
+            let b = vals.pop().unwrap();
+            arr_v.push(modifier(a, b));
         }
 
-        // Quite safe as the constant generics ensure
-        //  the ArrayVec and PointND have equal lengths
-        unsafe {
-            PointND::from(arr.into_inner_unchecked())
-        }
+        arrvec_into_inner!(arr_v, "apply_vals")
     }
 
     /**
@@ -509,19 +521,18 @@ impl<T, const N: usize> PointND<T, N> {
 
         check_transform_cap!(L + N, "extend");
 
-        let mut arr = ArrayVec::<T, M>::new();
-        let mut tmp_arr1 = ArrayVec::from(self.into_arr());
-        let mut tmp_arr2 = ArrayVec::from(values);
+        let mut arr_v = ArrayVec::<T, M>::new();
+        let mut self_ = ArrayVec::from(self.into_arr());
+        let mut vals = ArrayVec::from(values);
 
-        tmp_arr1.reverse();
-        tmp_arr2.reverse();
+        // Need to reverse as we'll be popping from the back of the arrays
+        self_.reverse();
+        vals.reverse();
 
-        for _ in 0..N { arr.push(tmp_arr1.pop().unwrap()); }
-        for _ in 0..L { arr.push(tmp_arr2.pop().unwrap()); }
+        for _ in 0..N { arr_v.push(self_.pop().unwrap()); }
+        for _ in 0..L { arr_v.push(vals.pop().unwrap()); }
 
-        unsafe {
-            PointND::from(arr.into_inner_unchecked())
-        }
+        arrvec_into_inner!(arr_v, "extend")
     }
 
 
@@ -560,16 +571,17 @@ impl<T, const N: usize> PointND<T, N> {
             panic!("Attempted to contract PointND to less than zero dimensions in a call to the contract_by() method");
         }
 
-        let mut arr = ArrayVec::<T, M>::new();
+        let mut arr_v = ArrayVec::<T, M>::new();
         let mut self_ = ArrayVec::from(self.into_arr());
         self_.reverse();
 
         for _ in 0..(N - dims) {
-            arr.push(self_.pop().unwrap());
+            let item = self_.pop().unwrap();
+            arr_v.push(item);
         }
 
         unsafe {
-            PointND::from(arr.into_inner_unchecked())
+            PointND::from(arr_v.into_inner_unchecked())
         }
     }
 
@@ -597,7 +609,7 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      let p = PointND
         ::from([0,1,2])
-        .contract_to(52);
+        .contract_to(1_000_000);
      # // Just to silence the type error
      # let _p2 = p + PointND::from([0]);
      ```
@@ -605,24 +617,23 @@ impl<T, const N: usize> PointND<T, N> {
      */
     pub fn contract_to<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
-        if dims > N {
-            panic!("Attempted to contract PointND to more dimensions than it had originally. \
-                    Try passing a usize value that is less than the dimensions of the point");
+        if dims > N || M > N {
+            panic!("Attempted to contract PointND to more dimensions than it had originally. Try \
+                    passing a usize value that is less than the dimensions of the original point");
         }
 
-        let mut arr = ArrayVec::<T, M>::new();
+        let mut arr_v = ArrayVec::<T, M>::new();
         let mut self_ = ArrayVec::from(self.into_arr());
 
         // Have to reverse as we'll be popping from the back
         self_.reverse();
 
         for _ in 0..M {
-            arr.push(self_.pop().unwrap());
+            let item = self_.pop().unwrap();
+            arr_v.push(item);
         }
 
-        unsafe {
-            PointND::from(arr.into_inner_unchecked())
-        }
+        arrvec_into_inner!(arr_v, "contract_to")
     }
 
 }
@@ -1041,7 +1052,7 @@ mod tests {
                         if let Some(i) = b {
                             a + i
                         } else {
-                            *a
+                            a
                         }
                     });
             assert_eq!(p.into_arr(), [10, 1, 22]);
@@ -1172,6 +1183,15 @@ mod tests {
             assert_eq!(p.into_arr(), []);
         }
 
+        #[test]
+        fn can_contract_to_same() {
+            let p = PointND
+                ::from([0,1,2,3])
+                .contract_to(4);
+
+            assert_eq!(p.dims(), 4);
+            assert_eq!(p.into_arr(), [0,1,2,3]);
+        }
 
         #[test]
         #[should_panic]
