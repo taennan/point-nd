@@ -2,7 +2,7 @@
 pub const MAX_POINT_DIMS: usize = u32::MAX as usize;
 
 /// Alias of the function pointer type to pass to  ```apply()``` in ```PointND```'s
-pub type ApplyFn<T, U> = fn(&T) -> U;
+pub type ApplyFn<T, U> = fn(T) -> U;
 
 /// Alias of the function pointer type to pass to  ```apply_dims()``` in ```PointND```'s
 pub type ApplyDimsFn<T> = fn(&T) -> T;

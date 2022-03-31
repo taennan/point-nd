@@ -5,6 +5,7 @@ use core::array::TryFromSliceError;
 use arrayvec::ArrayVec;
 use crate::utils::*;
 
+// For use within methods that make use of ArrayVec
 // Checks if the dimensions of a point are greater than the max capacity of ArrayVec's
 macro_rules! check_transform_cap {
     ( $dims:expr, $method:expr ) => {
@@ -18,6 +19,7 @@ macro_rules! check_transform_cap {
         }
     };
 }
+
 
 /**
 
@@ -308,6 +310,25 @@ impl<T, const N: usize> PointND<T, N> {
         check_transform_cap!(N, "apply");
 
         let mut arr = ArrayVec::<U, N>::new();
+        let mut self_ = ArrayVec::from(self.into_arr());
+        // Need to reverse as we'll be popping from the back of the array
+        self_.reverse();
+
+        for _ in 0..N {
+            // Items CANNOT be iterated, only popped
+            let item = self_.pop().unwrap();
+            let item = modifier(item);
+            arr.push(item);
+        }
+
+        unsafe { PointND::from(arr.into_inner_unchecked()) }
+
+        /*
+         * Another method allowing items to
+         * be passed by value to the closure
+         *
+
+        let mut arr = ArrayVec::<U, N>::new();
         for i in 0..N {
             arr.push(modifier(&self[i]));
         }
@@ -320,24 +341,6 @@ impl<T, const N: usize> PointND<T, N> {
             PointND::from(arr.into_inner_unchecked())
         }
 
-        /*
-         * Another method allowing items to
-         * be passed by value to the closure
-         *
-
-        let mut arr = ArrayVec::<U, N>::new();
-        let mut self_ = ArrayVec::from(self.into_arr());
-        // Need to reverse as we'll be popping from the back of the array
-        self_.reverse();
-
-        for _ in 0..N {
-            // Items CANNOT be iterated, only popped
-            let item = self_.pop().unwrap();
-            let item = modifier(&item);
-            arr.push(item);
-        }
-
-        unsafe { PointND::from(arr.into_inner_unchecked()) }
          */
     }
 
@@ -504,11 +507,7 @@ impl<T, const N: usize> PointND<T, N> {
      */
     pub fn extend<const L: usize, const M: usize>(self, values: [T; L]) -> PointND<T, M> {
 
-        if (L + N) > MAX_POINT_DIMS {
-            panic!("Attempted to extend a PointND to more than u32::MAX dimensions. \
-                    Try reducing the dimensions of the point via the contract_by() or \
-                    contract_to() before calling extend()");
-        }
+        check_transform_cap!(L + N, "extend");
 
         let mut arr = ArrayVec::<T, M>::new();
         let mut tmp_arr1 = ArrayVec::from(self.into_arr());
@@ -1373,7 +1372,7 @@ mod tests {
             assert_eq!(p.dims(), 3);
 
             let p: PointND<i32, 4> = [22; 4].into();
-            let p = p.apply(|i| *i / 2);
+            let p = p.apply(|i| i / 2);
             assert_eq!(p.into_arr(), [11; 4]);
         }
 
