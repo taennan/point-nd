@@ -490,6 +490,7 @@ impl<T, const N: usize> PointND<T, N> {
         self.apply_vals(other.into_arr(), modifier)
     }
 
+
     /**
      Consumes ```self``` and returns a new ```PointND``` with
      items from ```values``` appended to items from the original.
@@ -537,55 +538,6 @@ impl<T, const N: usize> PointND<T, N> {
 
 
     /**
-     Consumes ```self``` and returns a new ```PointND``` with ```dims```
-     items less than the original, leaving the remaining items unchanged.
-
-     This method always removes the rearmost items first.
-
-     ```
-     # use point_nd::PointND;
-     let p = PointND
-        ::from([0,1,2,3,4])
-        .contract_by(2);
-     assert_eq!(p.into_arr(), [0,1,2]);
-     ```
-
-     # Panics
-
-     - If ```dims``` is **greater than** the dimensions of the original
-       point (_a.k.a_ - you cannot have a point with negative dimensions).
-
-     ```should_panic
-     # use point_nd::PointND;
-     let p = PointND
-        ::from([0,1,2])
-        .contract_by(100);
-     # // Just to silence the type error
-     # let _p2 = p + PointND::from([0]);
-     ```
-     */
-    // Test these some more, they must have no gotchas
-    pub fn contract_by<const M: usize>(self, dims: usize) -> PointND<T, M> {
-
-        if dims > N {
-            panic!("Attempted to contract PointND to less than zero dimensions in a call to the contract_by() method");
-        }
-
-        let mut arr_v = ArrayVec::<T, M>::new();
-        let mut self_ = ArrayVec::from(self.into_arr());
-        self_.reverse();
-
-        for _ in 0..(N - dims) {
-            let item = self_.pop().unwrap();
-            arr_v.push(item);
-        }
-
-        unsafe {
-            PointND::from(arr_v.into_inner_unchecked())
-        }
-    }
-
-    /**
      Consumes ```self``` and returns a new ```PointND``` which
      retains only the first ```dims``` items of the original.
 
@@ -595,7 +547,7 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      let p = PointND
         ::from([0,1,2,3])
-        .contract_to(1);
+        .contract(1);
      assert_eq!(p.dims(), 1);
      assert_eq!(p.into_arr(), [0]);
      ```
@@ -609,13 +561,13 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      let p = PointND
         ::from([0,1,2])
-        .contract_to(1_000_000);
+        .contract(1_000_000);
      # // Just to silence the type error
      # let _p2 = p + PointND::from([0]);
      ```
 
      */
-    pub fn contract_to<const M: usize>(self, dims: usize) -> PointND<T, M> {
+    pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
         if dims > N || M > N {
             panic!("Attempted to contract PointND to more dimensions than it had originally. Try \
@@ -633,7 +585,7 @@ impl<T, const N: usize> PointND<T, N> {
             arr_v.push(item);
         }
 
-        arrvec_into_inner!(arr_v, "contract_to")
+        arrvec_into_inner!(arr_v, "contract")
     }
 
 }
@@ -1133,41 +1085,10 @@ mod tests {
         use super::*;
 
         #[test]
-        fn can_contract_by() {
-            let p = PointND
-                ::from([0,1,2,3])
-                .contract_by(2);
-
-            assert_eq!(p.dims(), 2);
-            assert_eq!(p.into_arr(), [0,1]);
-        }
-
-        #[test]
-        fn can_contract_by_to_zero() {
-            let p = PointND
-                ::from([0,1,2,3])
-                .contract_by(4);
-
-            assert_eq!(p.dims(), 0);
-            assert_eq!(p.into_arr(), []);
-        }
-
-        #[test]
-        #[should_panic]
-        fn cannot_contract_beyond_zero() {
-            let p = PointND
-                ::from([0,1,2,3])
-                .contract_by(10);
-
-            // Just to silence the type error
-            assert_eq!(p.into_arr(), []);
-        }
-
-        #[test]
         fn can_contract_to() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract_to(3);
+                .contract(3);
 
             assert_eq!(p.dims(), 3);
             assert_eq!(p.into_arr(), [0,1,2]);
@@ -1177,7 +1098,7 @@ mod tests {
         fn can_contract_to_zero() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract_to(0);
+                .contract(0);
 
             assert_eq!(p.dims(), 0);
             assert_eq!(p.into_arr(), []);
@@ -1187,7 +1108,7 @@ mod tests {
         fn can_contract_to_same() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract_to(4);
+                .contract(4);
 
             assert_eq!(p.dims(), 4);
             assert_eq!(p.into_arr(), [0,1,2,3]);
@@ -1199,7 +1120,7 @@ mod tests {
         fn cannot_contract_to_more_dimensions() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract_to::<1000>(1000);
+                .contract::<1000>(1000);
         }
 
     }
