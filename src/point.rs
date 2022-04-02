@@ -38,16 +38,16 @@ macro_rules! arrvec_into_inner {
 
 The whole _point_ of the crate.
 
-The ```PointND``` struct is really just a smart pointer to an array with
-convenience methods for accessing, setting and transforming values.
+The ```PointND``` struct is really just a smart pointer to an array of type ```[T; N]```
+with convenience methods for accessing, setting and transforming values.
 
-As the struct dereferences to a slice, all methods for slices are available with this.
+As the struct dereferences to a slice, all methods implemented for slices are available with this.
 
 # Making a Point
 
-There are three ```PointND``` constructors, ```from```, ```from_slice``` and ```fill```.
+There are three ```PointND``` constructors, ```from()```, ```from_slice()``` and ```fill()```.
 
-The ```from_slice``` and ```fill``` functions can only be used
+The ```from_slice()``` and ```fill()``` functions can only be used
 if creating a point where the items implement ```Copy```
 
 ```
@@ -64,7 +64,6 @@ let p: PointND<_, 3> = PointND::from_slice(&vec);
 let p: PointND<i32, 4> = PointND::fill(5);
 
 // You can even construct a PointND with zero dimensions
-//  ...but what's the point in that?
 let p: PointND<i32, 0> = PointND::from([]);
 ```
 
@@ -203,7 +202,7 @@ assert_eq!(*p.x(), *p.y());
 
 ### Appliers
 
-The ```apply```, ```apply_vals```, ```apply_dims``` and ```apply_point``` methods all
+The ```apply()```, ```apply_vals()```, ```apply_dims()``` and ```apply_point()``` methods all
 consume self and return a new point after calling a function or closure on all contained values
 
 Multiple applier methods can be chained together to make complex transformations to a ```PointND```
@@ -212,8 +211,8 @@ This is probably best explained with an example:
 
 ```
 # use point_nd::PointND;
-// A trivial transformation more easily done via other methods...
-//  but it gets the point across
+// A trivial transformation more easily done other ways
+//  ...but it gets the point across
 let p = PointND
     ::from([0,1,2])            // Creates a new PointND
     .apply(|item| item + 2)    // Adds 2 to each item
@@ -253,6 +252,8 @@ for _ in p.into_arr().into_iter() { /* Move stuff */ }
 
 # Things (not strictly necessary) to Note
 
+### Convenience Methods
+
 As stated earlier, certain methods for accessing and setting the values contained by a ```PointND```
 are only implemented for points within **1..=4** dimensions.
 
@@ -260,7 +261,27 @@ This was done to ensure that the compiler could check if out of index values wer
 If it these methods were implemented for ```PointND```'s of any dimension, these errors would have
 to be caught at runtime.
 
-This was done to mirror the behaviour of arrays as closely as possible.
+This was done to mirror the behaviour of arrays at compile time as closely as possible.
+
+### Math Operations
+
+Unlike structures in other crates, ```PointND```'s (as of ```v0.5.0```) do not implement mutating
+and consuming math operations like ```Neg```, ```Add```, ```SubAssign```, _etc_.
+
+It was decided that these functionalities and others could provided by independent crates via
+functions which could be imported and passed to the apply, extend and contract methods.
+
+```Eq``` and ```PartialEq``` are implemented though.
+
+### Dimensional Capacity
+
+This crate relies heavily on the ```arrayvec``` crate when applying transformations to points. Due
+to the fact that ```arrayvec::ArrayVec```'s lengths are capped at ```u32::MAX```, the apply, extend
+and contract methods cannot be used on ```PointND```'s with dimensions exceeding that limit.
+
+This usually should not be a problem though (Who wants a ```u32::MAX + 1``` dimensional point anyway?
+You'd need a ```16GB``` stack to hold one point containing ```i32```'s), but it is probably worth mentioning.
+
  */
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PointND<T, const N: usize>([T; N]);
@@ -382,14 +403,14 @@ impl<T, const N: usize> PointND<T, N> {
 
      When creating a modifier function to be used by this method, keep
      in mind that the items in ```self``` are passed to it through the
-     **first arg**, and the items in ```value``` through the **second**.
+     **first arg**, and the items in ```values``` through the **second**.
 
      ```
      # use point_nd::PointND;
      let p = PointND
          ::from([0,1,2])                      // Creates a new PointND
-         .apply_vals([1,3,5], |a, b| a + b)  // Adds items in point to items in array
-         .apply_vals([2,4,6], |a, b| a * b); // Multiplies items in point to items in array
+         .apply_vals([1,3,5], |a, b| a + b)   // Adds items in point to items in array
+         .apply_vals([2,4,6], |a, b| a * b);  // Multiplies items in point to items in array
      assert_eq!(p.into_arr(), [2, 16, 42]);
      ```
 
@@ -498,7 +519,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      # Panics
 
-     - If the combined dimensions of ```self``` and the length of ```values``` are **greater than** ```u32::MAX```.
+     - If the combined length of ```self``` and ```values``` are greater than ```u32::MAX```.
 
      ```should_panic
      # use point_nd::PointND;
@@ -540,9 +561,9 @@ impl<T, const N: usize> PointND<T, N> {
      # use point_nd::PointND;
      let p = PointND
         ::from([0,1,2,3])
-        .contract(1);
-     assert_eq!(p.dims(), 1);
-     assert_eq!(p.into_arr(), [0]);
+        .contract(2);
+     assert_eq!(p.dims(), 2);
+     assert_eq!(p.into_arr(), [0,1]);
      ```
 
      # Panics
@@ -559,6 +580,7 @@ impl<T, const N: usize> PointND<T, N> {
      # let _p2 = PointND::from([0,1,2]).apply_point(p, |a, b| a + b);
      ```
 
+     - If the dimensions of ```self``` are greater than ```u32::MAX```.
      */
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
@@ -714,12 +736,14 @@ impl<T> PointND<T, 4>  {
 }
 
 // Convenience Shifters
+/// Function for safely transforming the value contained by a 1D ```PointND```
 impl<T> PointND<T, 1>
     where T: AddAssign {
 
     pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
 
 }
+/// Functions for safely transforming the values contained by a 2D ```PointND```
 impl<T> PointND<T, 2>
     where T: AddAssign {
 
@@ -727,6 +751,7 @@ impl<T> PointND<T, 2>
     pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
 
 }
+/// Functions for safely transforming the values contained by a 3D ```PointND```
 impl<T> PointND<T, 3>
     where T: AddAssign {
 
@@ -735,6 +760,7 @@ impl<T> PointND<T, 3>
     pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
 
 }
+/// Functions for safely transforming the values contained by a 4D ```PointND```
 impl<T> PointND<T, 4>
     where T: AddAssign {
 
