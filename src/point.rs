@@ -45,36 +45,36 @@ As the struct dereferences to a slice, all methods implemented for slices are av
 
 # Making a Point
 
-There are three ```PointND``` constructors, ```from()```, ```from_slice()``` and ```fill()```.
+There are three ```PointND``` constructors (in order of usefulness): ```from()```, ```fill()```
+and ```from_slice()```.
 
-The ```from_slice()``` and ```fill()``` functions can only be used
-if creating a point where the items implement ```Copy```
+The ```from_slice()``` and ```fill()``` functions can only be used if creating a point where the
+items implement ```Copy```
 
 ```
 # use point_nd::PointND;
 // Creating a 2D point from a given array
 let arr = [0, 1];
-let p: PointND<i32, 2> = PointND::from(arr);
-
-// Creating a 3D point from values of a given slice
-let vec: Vec<i32> = vec![0, 1, 2];
-let p: PointND<_, 3> = PointND::from_slice(&vec);
+let p = PointND::from(arr);
 
 // Creating a 4D point with all values set to 5
-let p: PointND<i32, 4> = PointND::fill(5);
+let p: PointND<_, 4> = PointND::fill(5);
+
+// Creating a 3D point from values of a given slice
+let p: PointND<_, 3> = PointND::from_slice(&vec![0, 1, 2]);
 
 // You can even construct a PointND with zero dimensions
-let p: PointND<i32, 0> = PointND::from([]);
+let arr: [i32; 0] = [];
+let p = PointND::from(arr);
 ```
 
-The second generic is a ```usize``` constant generic and for the ```fill()```
-and ```from_slice()``` functions, specifying it is sometimes necessary when the
-compiler cannot infer it itself.
+The generic arg ```N``` in ```PointND<T, N>``` is a ```usize``` constant generic and for the ```fill()```
+and ```from_slice()``` functions, specifying it is sometimes needed when the compiler cannot infer it itself.
 
-See their documentation for cases when explicit types are not necessary
+See their documentation for cases when explicit generics are not necessary
 
-Otherwise, if you don't like writing ```PointND``` twice for type
-annotation, use FQS (_fully qualified syntax_) instead:
+Otherwise, if you don't like writing ```PointND``` twice for type annotation, it is recommended to
+use FQS (_fully qualified syntax_) instead:
 
 ```
 # use point_nd::PointND;
