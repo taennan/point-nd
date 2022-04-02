@@ -1,5 +1,5 @@
 
-use core::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut, AddAssign};
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
 use arrayvec::ArrayVec;
@@ -199,28 +199,6 @@ assert_eq!(*p.x(), -100);
 // Sets y via indexing and dimension macros
 p[dim!(y)] = -100;
 assert_eq!(*p.x(), *p.y());
-```
-
-The basic arithmetic and arithmetic assign operations
-(```Neg```, ```Add```, ```AddAssign```, _etc_) are also available
-
-```
-# use point_nd::PointND;
-let p = PointND::from([-1, 0, 1]);
-
-// Neg
-let neg_p = -p.clone();
-assert_eq!(neg_p.into_arr(), [1, 0, -1]);
-
-// Sub
-let p_diff = p.clone() - p.clone();
-assert_eq!(p_diff.into_arr(), [0, 0, 0]);
-
-// MulAssign
-let p_mul = p.clone() * p.clone();
-assert_eq!(p_mul.into_arr(), [1, 0, 1]);
-
-// ...and etc.
 ```
 
 ### Appliers
@@ -578,7 +556,7 @@ impl<T, const N: usize> PointND<T, N> {
         ::from([0,1,2])
         .contract(1_000_000);
      # // Just to silence the type error
-     # let _p2 = p + PointND::from([0]);
+     # let _p2 = PointND::from([0,1,2]).apply_point(p, |a, b| a + b);
      ```
 
      */
@@ -627,8 +605,8 @@ impl<T, const N: usize> PointND<T, N>
      let p1 = PointND::from([0,1]);       // Compiler knows this has 2 dimensions
      let p2 = PointND::from_slice(&vec![2,3]);
 
-     // Later, p2 is added to p1. The compiler is able to infer its dimensions
-     let p = p1 + p2;
+     // Later, p2 is applied to p1. The compiler is able to infer its dimensions
+     let p3 = p1.apply_point(p2, |a, b| a + b);
      ```
 
      # Panics
@@ -950,7 +928,7 @@ mod tests {
             assert_eq!(five.dims(), 5);
             assert_eq!(five.clone().into_arr(), [0,1,2,3,4]);
 
-            let sum = five + PointND::from([0,1,2,3,4]);
+            let sum = five.apply_point(PointND::from([0,1,2,3,4]), |a, b| a + b);
             assert_eq!(sum.into_arr(), [0,2,4,6,8]);
 
         }
@@ -1244,118 +1222,6 @@ mod tests {
         use super::*;
 
         #[test]
-        fn can_add() {
-            let arr = [0, -1, 2, -3];
-            let p1 = PointND::from(arr);
-            let p2 = PointND::from(arr);
-
-            let p3 = p1 + p2;
-            for (a, b) in p3.into_arr().into_iter().zip(arr){
-                assert_eq!(a, b + b);
-            }
-        }
-        #[test]
-        fn can_add_assign() {
-            let arr = [0, -1, 2, -3, 4, -5];
-            let mut p1 = PointND::from(arr);
-
-            p1 += PointND::from(arr);
-            for i in 0..p1.dims() {
-                assert_eq!(p1[i], arr[i] + arr[i]);
-            }
-        }
-
-        #[test]
-        fn can_sub() {
-            let arr = [0, -1, 2, -3];
-            let p1 = PointND::from(arr);
-            let p2 = PointND::from(arr);
-
-            let p3 = p1 - p2;
-            for (a, b) in p3.into_arr().into_iter().zip(arr){
-                assert_eq!(a, b - b);
-            }
-        }
-        #[test]
-        fn can_sub_assign() {
-            let arr = [0, -1, 2, -3, 4, -5];
-            let mut p1 = PointND::from(arr);
-
-            p1 -= PointND::from(arr);
-            for i in 0..p1.dims() {
-                assert_eq!(p1[i], arr[i] - arr[i]);
-            }
-        }
-
-        #[test]
-        fn can_mul() {
-            let arr = [0, -1, 2, -3];
-            let p1 = PointND::from(arr);
-            let p2 = PointND::from(arr);
-
-            let p3 = p1 * p2;
-            for (a, b) in p3.into_arr().into_iter().zip(arr){
-                assert_eq!(a, b * b);
-            }
-        }
-        #[test]
-        fn can_mul_assign() {
-            let arr = [0, -1, 2, -3, 4, -5];
-            let mut p1 = PointND::from(arr);
-
-            p1 *= PointND::from(arr);
-            for i in 0..p1.dims() {
-                assert_eq!(p1[i], arr[i] * arr[i]);
-            }
-        }
-
-        #[test]
-        fn can_div() {
-            let arr = [-1, 2, -3, 4];
-            let p1 = PointND::from(arr);
-            let p2 = PointND::from(arr);
-
-            let p3 = p1 / p2;
-            for (a, b) in p3.into_arr().into_iter().zip(arr){
-                assert_eq!(a, b / b);
-            }
-        }
-        #[test]
-        fn can_div_assign() {
-            let arr = [-1, 2, -3, 4, -5];
-            let mut p1 = PointND::from(arr);
-
-            p1 /= PointND::from(arr);
-            for i in 0..p1.dims() {
-                assert_eq!(p1[i], arr[i] / arr[i]);
-            }
-        }
-
-        #[test]
-        #[should_panic]
-        fn cannot_div_if_one_item_is_zero() {
-            let arr = [0, -1, 0, -3, 0];
-            let p1 = PointND::from(arr);
-            let p2 = PointND::from(arr);
-
-            let p3 = p1 / p2;
-            for (a, b) in p3.into_arr().into_iter().zip(arr){
-                assert_eq!(a, b / b);
-            }
-        }
-        #[test]
-        #[should_panic]
-        fn cannot_div_assign_if_one_item_is_zero() {
-            let arr = [-1, 0, -3, 4, 0];
-            let mut p1 = PointND::from(arr);
-
-            p1 /= PointND::from(arr);
-            for i in 0..p1.dims() {
-                assert_eq!(p1[i], arr[i] / arr[i]);
-            }
-        }
-
-        #[test]
         fn can_eq() {
             let arr = [0, -1, 2, -3];
             let p1 = PointND::from(arr);
@@ -1366,10 +1232,8 @@ mod tests {
 
         #[test]
         fn can_ne() {
-            let arr1 = [1,2,3,4];
-            let p1 = PointND::from(arr1);
-            let arr2 = [5,6,7,8];
-            let p2 = PointND::from(arr2);
+            let p1 = PointND::from([0, -1, 2, -3]);
+            let p2 = PointND::from([0, 1, 2, 3]);
 
             assert_ne!(p1, p2);
         }
