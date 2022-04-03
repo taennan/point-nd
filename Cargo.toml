@@ -15,3 +15,18 @@ categories = ["data-structures", "graphics", "no-std"]
 
 [dependencies]
 arrayvec = { version = "0.7.2", default-features = false }
+
+[features]
+default = ["appliers", "var_dims", "conv_methods"]
+full = ["default", "std", "serde"]
+
+x = []
+y = []
+z = []
+w = []
+conv_methods = ["x", "y", "z", "w"]
+
+appliers = []
+var_dims = []
+std = []
+serde = []
