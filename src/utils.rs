@@ -1,5 +1,6 @@
 
-pub const MAX_POINT_DIMS: usize = u32::MAX as usize;
+#[cfg(any(feature = "appliers", feature = "var_dims"))]
+pub const ARRVEC_CAP: usize = u32::MAX as usize;
 
 /// Alias of the function pointer type to pass to  ```apply()``` in ```PointND```'s
 pub type ApplyFn<T, U> = fn(T) -> U;

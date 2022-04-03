@@ -76,6 +76,7 @@
  # }
  ```
  */
+#[cfg(feature = "dim_macros")]
 #[macro_export]
 macro_rules! dim {
 
@@ -133,6 +134,7 @@ macro_rules! dim {
  # }
  ```
  */
+#[cfg(feature = "dim_macros")]
 #[macro_export]
 macro_rules! dims {
 
@@ -214,6 +216,7 @@ macro_rules! dims {
  # }
  ```
  */
+#[cfg(feature = "dim_macros")]
 #[macro_export]
 macro_rules! dimr {
 
@@ -241,6 +244,7 @@ macro_rules! dimr {
 
 }
 
+#[cfg(feature = "dim_macros")]
 #[cfg(test)]
 mod tests {
 

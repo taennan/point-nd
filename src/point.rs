@@ -1,15 +1,26 @@
-use core::ops::{Deref, DerefMut, AddAssign};
+
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
+use core::ops::{Deref, DerefMut};
+
+#[cfg(any(feature = "x", feature = "y", feature = "z", feature = "w"))]
+use core::ops::AddAssign;
+
+#[cfg(any(feature = "appliers", feature = "var_dims"))]
 use arrayvec::ArrayVec;
-use crate::utils::*;
+#[cfg(any(feature = "appliers", feature = "var_dims"))]
+use crate::utils::ARRVEC_CAP;
+
+#[cfg(feature = "appliers")]
+use crate::utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
 
 
 // For use within methods that make use of ArrayVec
 // Checks if the dimensions of a point are greater than the max capacity of ArrayVec's
+#[cfg(any(feature = "appliers", feature = "var_dims"))]
 macro_rules! check_transform_cap {
     ( $dims:expr, $method:expr ) => {
-        if $dims > MAX_POINT_DIMS {
+        if $dims > ARRVEC_CAP {
             panic!(
                 "Attempted to call {}() on PointND with more than u32::MAX dimensions. \
                 Try reducing the dimensions of the point via the contract() method or before \
@@ -23,6 +34,7 @@ macro_rules! check_transform_cap {
 // For use ONLY within the apply, extend and contract methods as their constant
 //  generics ensure that the ArrayVec is always filled with initialised values
 // Converts ArrayVec<T,N> into [T;N] unsafely
+#[cfg(any(feature = "appliers", feature = "var_dims"))]
 macro_rules! arrvec_into_inner {
     ($arrvec:expr, $method:expr) => {
         match $arrvec.into_inner() {
@@ -335,6 +347,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      - If the dimensions of ```self``` are greater than ```u32::MAX```.
      */
+    #[cfg(feature = "appliers")]
     pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
 
         check_transform_cap!(N, "apply");
@@ -376,6 +389,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      - If the dimensions of ```self``` are greater than ```u32::MAX```.
      */
+    #[cfg(feature = "appliers")]
     pub fn apply_dims(self, dims: &[usize], modifier: ApplyDimsFn<T>) -> Self {
 
         check_transform_cap!(N, "apply_dims");
@@ -451,6 +465,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      - If the dimensions of ```self``` or ```values``` are greater than ```u32::MAX```.
      */
+    #[cfg(feature = "appliers")]
     pub fn apply_vals<U, V>(self, values: [V; N], modifier: ApplyValsFn<T, U, V>) -> PointND<U, N> {
 
         check_transform_cap!(N, "apply_vals");
@@ -500,6 +515,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
      */
+    #[cfg(feature = "appliers")]
     pub fn apply_point<U, V>(self, other: PointND<V, N>, modifier: ApplyPointFn<T, U, V>) -> PointND<U, N> {
 
         check_transform_cap!(N, "apply_point");
@@ -535,6 +551,7 @@ impl<T, const N: usize> PointND<T, N> {
          .extend([1; L]);
      ```
      */
+    #[cfg(feature = "var_dims")]
     pub fn extend<const L: usize, const M: usize>(self, values: [T; L]) -> PointND<T, M> {
 
         check_transform_cap!(L + N, "extend");
@@ -585,6 +602,7 @@ impl<T, const N: usize> PointND<T, N> {
 
      - If the dimensions of ```self``` are greater than ```u32::MAX```.
      */
+    #[cfg(feature = "var_dims")]
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
         // This check allows us to safely unwrap the values in self
@@ -694,6 +712,7 @@ impl<T, const N: usize> DerefMut for PointND<T, N> {
 
 // Convenience Getters and Setters
 /// Functions for safely getting and setting the value contained by a 1D ```PointND```
+#[cfg(feature = "x")]
 impl<T> PointND<T, 1> {
 
     pub fn x(&self) -> &T { &self[0] }
@@ -702,6 +721,7 @@ impl<T> PointND<T, 1> {
 
 }
 /// Functions for safely getting and setting the values contained by a 2D ```PointND```
+#[cfg(feature = "y")]
 impl<T> PointND<T, 2> {
 
     pub fn x(&self) -> &T { &self[0] }
@@ -712,6 +732,7 @@ impl<T> PointND<T, 2> {
 
 }
 /// Functions for safely getting and setting the values contained by a 3D ```PointND```
+#[cfg(feature = "z")]
 impl<T> PointND<T, 3>  {
 
     pub fn x(&self) -> &T { &self[0] }
@@ -724,6 +745,7 @@ impl<T> PointND<T, 3>  {
 
 }
 /// Functions for safely getting and setting the values contained by a 4D ```PointND```
+#[cfg(feature = "w")]
 impl<T> PointND<T, 4>  {
 
     pub fn x(&self) -> &T { &self[0] }
@@ -740,6 +762,7 @@ impl<T> PointND<T, 4>  {
 
 // Convenience Shifters
 /// Function for safely transforming the value contained by a 1D ```PointND```
+#[cfg(feature = "x")]
 impl<T> PointND<T, 1>
     where T: AddAssign {
 
@@ -747,6 +770,7 @@ impl<T> PointND<T, 1>
 
 }
 /// Functions for safely transforming the values contained by a 2D ```PointND```
+#[cfg(feature = "y")]
 impl<T> PointND<T, 2>
     where T: AddAssign {
 
@@ -755,6 +779,7 @@ impl<T> PointND<T, 2>
 
 }
 /// Functions for safely transforming the values contained by a 3D ```PointND```
+#[cfg(feature = "z")]
 impl<T> PointND<T, 3>
     where T: AddAssign {
 
@@ -764,6 +789,7 @@ impl<T> PointND<T, 3>
 
 }
 /// Functions for safely transforming the values contained by a 4D ```PointND```
+#[cfg(feature = "w")]
 impl<T> PointND<T, 4>
     where T: AddAssign {
 
@@ -865,6 +891,7 @@ mod tests {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "appliers")]
     mod appliers {
         use super::*;
 
@@ -934,6 +961,7 @@ mod tests {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "var_dims")]
     mod extenders {
         use super::*;
 
@@ -974,6 +1002,7 @@ mod tests {
     }
 
     #[cfg(test)]
+    #[cfg(feature = "var_dims")]
     mod contractors {
         use super::*;
 
@@ -1018,6 +1047,13 @@ mod tests {
 
     }
 
+    #[cfg(all(test, any(feature = "x", feature = "y", feature = "z", feature = "w")))]
+    mod conv_methods {
+        use super::*;
+
+
+    }
+
     #[cfg(test)]
     mod get {
         use super::*;
@@ -1038,6 +1074,7 @@ mod tests {
 
 
         #[test]
+        #[cfg(feature = "x")]
         fn getter_for_1d_points_work() {
             let arr = [0];
             let p = PointND::from(arr);
@@ -1045,6 +1082,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "y")]
         fn getters_for_2d_points_work() {
             let arr = [0,1];
             let p = PointND::from(arr);
@@ -1054,6 +1092,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "z")]
         fn getters_for_3d_points_work() {
             let arr = [0,1,2];
             let p = PointND::from(arr);
@@ -1064,6 +1103,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "w")]
         fn getters_for_4d_points_work() {
             let arr = [0,1,2,3];
             let p = PointND::from(arr);
@@ -1092,6 +1132,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "x")]
         fn setter_for_1d_points_work() {
 
             let old_vals = [0];
@@ -1103,6 +1144,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "y")]
         fn setters_for_2d_points_work() {
 
             let old_vals = [0,1];
@@ -1117,6 +1159,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "z")]
         fn setters_for_3d_points_work() {
 
             let old_vals = [0,1,2];
@@ -1133,6 +1176,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "w")]
         fn setters_for_4d_points_work() {
 
             let old_vals = [0,1,2,3];
@@ -1157,6 +1201,7 @@ mod tests {
         use super::*;
 
         #[test]
+        #[cfg(feature = "x")]
         fn can_shift_1d_points() {
             let mut p = PointND::from([0.1]);
             p.shift_x(1.23);
@@ -1165,6 +1210,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "y")]
         fn can_shift_2d_points() {
             let mut p = PointND::from([12, 345]);
             p.shift_x(-22);
@@ -1174,6 +1220,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "z")]
         fn can_shift_3d_points() {
             let mut p = PointND::from([42.4, 2.85, 75.01]);
             p.shift_x(40.6);
@@ -1184,6 +1231,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(feature = "w")]
         fn can_shift_4d_points() {
             let mut p = PointND::from([0,1,2,3]);
             p.shift_x(10);
@@ -1242,29 +1290,6 @@ mod tests {
             let slice = &[0,1,2,3,4][..];
             let p: Result<PointND<_, 10921>, _> = slice.try_into();
             assert!(p.is_err());
-        }
-
-    }
-
-    #[cfg(test)]
-    mod operators {
-        use super::*;
-
-        #[test]
-        fn can_eq() {
-            let arr = [0, -1, 2, -3];
-            let p1 = PointND::from(arr);
-            let p2 = PointND::from(arr);
-
-            assert_eq!(p1, p2);
-        }
-
-        #[test]
-        fn can_ne() {
-            let p1 = PointND::from([0, -1, 2, -3]);
-            let p2 = PointND::from([0, 1, 2, 3]);
-
-            assert_ne!(p1, p2);
         }
 
     }

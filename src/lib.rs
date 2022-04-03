@@ -14,9 +14,10 @@ for use with a Rust version of **at least 1.51**
 
  */
 
+#[cfg(feature = "dim_macros")]
 mod dimension_macros;
 mod point;
 mod utils;
 
 pub use point::PointND;
-pub use utils::{ ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn };
+pub use utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
