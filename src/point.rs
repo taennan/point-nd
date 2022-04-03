@@ -1,9 +1,9 @@
-
 use core::ops::{Deref, DerefMut, AddAssign};
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
 use arrayvec::ArrayVec;
 use crate::utils::*;
+
 
 // For use within methods that make use of ArrayVec
 // Checks if the dimensions of a point are greater than the max capacity of ArrayVec's
@@ -12,8 +12,8 @@ macro_rules! check_transform_cap {
         if $dims > MAX_POINT_DIMS {
             panic!(
                 "Attempted to call {}() on PointND with more than u32::MAX dimensions. \
-                Try reducing the dimensions of the point via the contract_by() or \
-                contract_to() before transforming",
+                Try reducing the dimensions of the point via the contract() method or before \
+                transforming",
                 $method
             );
         }
@@ -27,12 +27,16 @@ macro_rules! arrvec_into_inner {
     ($arrvec:expr, $method:expr) => {
         match $arrvec.into_inner() {
             Ok(arr) => PointND::from(arr),
-            _ => panic!("Couldn't convert ArrayVec into array in {}() method. \
-                         This operation should never have panicked. Please contact \
-                         the maintainers of PointND if troubles persist", $method)
+            _ => panic!(
+                "Couldn't convert ArrayVec into array in {}() method. \
+                 This operation should never have panicked. Please contact \
+                 the maintainers of PointND if troubles persist",
+                 $method
+            )
         }
     };
 }
+
 
 /**
 
@@ -277,11 +281,10 @@ functions which could be imported and passed to the apply, extend and contract m
 
 This crate relies heavily on the ```arrayvec``` crate when applying transformations to points. Due
 to the fact that ```arrayvec::ArrayVec```'s lengths are capped at ```u32::MAX```, the apply, extend
-and contract methods cannot be used on ```PointND```'s with dimensions exceeding that limit.
+and contract methods will panic if used on ```PointND```'s with dimensions exceeding that limit.
 
-This usually should not be a problem though (Who wants a ```u32::MAX + 1``` dimensional point anyway?
-You'd need a ```16GB``` stack to hold one point containing ```i32```'s), but it is probably worth mentioning.
-
+This shouldn't be a problem in most use cases (who needs a ```u32::MAX + 1``` dimensional point
+anyway?), but it is probably worth mentioning.
  */
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PointND<T, const N: usize>([T; N]);
@@ -545,7 +548,7 @@ impl<T, const N: usize> PointND<T, N> {
         vals.reverse();
 
         for _ in 0..N { arr_v.push(self_.pop().unwrap()); }
-        for _ in 0..L { arr_v.push(vals.pop().unwrap()); }
+        for _ in 0..L { arr_v.push(vals.pop().unwrap());  }
 
         arrvec_into_inner!(arr_v, "extend")
     }
@@ -584,6 +587,7 @@ impl<T, const N: usize> PointND<T, N> {
      */
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
+        // This check allows us to safely unwrap the values in self
         if dims > N || M > N {
             panic!("Attempted to contract PointND to more dimensions than it had originally. Try \
                     passing a usize value that is less than the dimensions of the original point");
@@ -591,11 +595,10 @@ impl<T, const N: usize> PointND<T, N> {
 
         let mut arr_v = ArrayVec::<T, M>::new();
         let mut self_ = ArrayVec::from(self.into_arr());
-
         // Have to reverse as we'll be popping from the back
         self_.reverse();
 
-        for _ in 0..M {
+        for _ in 0..dims {
             let item = self_.pop().unwrap();
             arr_v.push(item);
         }
@@ -940,10 +943,6 @@ mod tests {
             let zero = PointND::<i32, 0>::from([]);
             assert_eq!(zero.dims(), 0);
 
-            let one = zero.clone().extend([0]);
-            assert_eq!(one.dims(), 1);
-            assert_eq!(one.into_arr(), [0]);
-
             let two = zero.clone().extend([0,1]);
             assert_eq!(two.dims(), 2);
             assert_eq!(two.into_arr(), [0, 1]);
@@ -957,6 +956,10 @@ mod tests {
             let sum = five.apply_point(PointND::from([0,1,2,3,4]), |a, b| a + b);
             assert_eq!(sum.into_arr(), [0,2,4,6,8]);
 
+            let huge = PointND
+                ::from([0; 100])
+                .extend([1; 1_000]) as PointND<i32, 1_100>;
+            assert_eq!(huge.dims(), 1_100);
         }
 
         #[test]
