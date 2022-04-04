@@ -1,4 +1,3 @@
-
 use core::convert::TryFrom;
 use core::array::TryFromSliceError;
 use core::ops::{Deref, DerefMut};
@@ -180,8 +179,7 @@ assert_eq!(p.len(), 2);
 
 # Transforming Values
 
-If the dimensions of the point are within ```1..=4```,
-it is recommended to use the convenience setters
+If the dimensions of the point are within ```1..=4```, it is recommended to use the convenience setters
 
 ```
 # use point_nd::PointND;
@@ -343,6 +341,12 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
      ```
 
+     # Enabled by features:
+
+     - ```default```
+
+     - ```appliers```
+
      # Panics
 
      - If the dimensions of ```self``` are greater than ```u32::MAX```.
@@ -384,6 +388,12 @@ impl<T, const N: usize> PointND<T, N> {
 
      Unlike some other apply methods, this ```apply_dims``` cannot return
      a ```PointND``` with items of a different type from the original.
+
+     # Enabled by features:
+
+     - ```default```
+
+     - ```appliers```
 
      # Panics
 
@@ -461,6 +471,12 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.into_arr(), [10.0, -9.0, 12.0]);
      ```
 
+     # Enabled by features:
+
+     - ```default```
+
+     - ```appliers```
+
      # Panics
 
      - If the dimensions of ```self``` or ```values``` are greater than ```u32::MAX```.
@@ -511,6 +527,12 @@ impl<T, const N: usize> PointND<T, N> {
      the type of the items in the original point. This means that ```apply_point```
      can create a new point with items of a different type, but the same length.
 
+     # Enabled by features:
+
+     - ```default```
+
+     - ```appliers```
+
      # Panics
 
      - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
@@ -535,6 +557,10 @@ impl<T, const N: usize> PointND<T, N> {
          .extend([2,3]);
       assert_eq!(p.into_arr(), [0,1,2,3]);
      ```
+
+     # Enabled by features:
+
+     - ```var_dims```
 
      # Panics
 
@@ -585,6 +611,10 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.dims(), 2);
      assert_eq!(p.into_arr(), [0,1]);
      ```
+
+    # Enabled by features:
+
+     - ```var_dims```
 
      # Panics
 
@@ -761,7 +791,17 @@ impl<T> PointND<T, 4>  {
 }
 
 // Convenience Shifters
-/// Function for safely transforming the value contained by a 1D ```PointND```
+///
+/// Method for safely transforming the value contained by a 1D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```x```
+/// 
 #[cfg(feature = "x")]
 impl<T> PointND<T, 1>
     where T: AddAssign {
@@ -823,7 +863,7 @@ impl<T, const N: usize> TryFrom<&[T]> for PointND<T, N>
     type Error = TryFromSliceError;
     fn try_from(slice: &[T]) -> Result<Self, Self::Error> {
 
-        let res: Result<[T; N], _> = slice.clone().try_into();
+        let res: Result<[T; N], _> = slice.try_into();
         match res {
             Ok(arr) => Ok( PointND(arr) ),
             Err(err) => Err( err )
@@ -835,7 +875,7 @@ impl<T, const N: usize> TryFrom<&[T]> for PointND<T, N>
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use super::*;
 
     #[cfg(test)]
     mod iterating {
@@ -886,6 +926,37 @@ mod tests {
             for i in p.into_iter() {
                 assert_eq!(i, fill_val);
             }
+        }
+
+    }
+
+    #[cfg(test)]
+    mod indexing {
+        use super::*;
+
+        #[test]
+        fn can_get_slice_by_range_index() {
+            let p = PointND::from([0,1,2,3,4]);
+            let slice = &p[0..3];
+            assert_eq!(slice, [0,1,2]);
+        }
+
+        #[test]
+        #[should_panic]
+        fn cannot_get_out_of_bounds_index() {
+            let p = PointND::from([0,1,2]);
+            let _x = p[p.dims() + 1];
+        }
+
+        #[test]
+        fn can_set_value_by_index() {
+
+            let mut p = PointND::from([0,1,2]);
+
+            let new_val = 9999;
+            p[1] = new_val;
+
+            assert_eq!(p.into_arr(), [0, new_val, 2]);
         }
 
     }
@@ -1047,202 +1118,185 @@ mod tests {
 
     }
 
-    #[cfg(all(test, any(feature = "x", feature = "y", feature = "z", feature = "w")))]
+    #[cfg(test)]
+    #[cfg(any(feature = "x", feature = "y", feature = "z", feature = "w"))]
     mod conv_methods {
         use super::*;
 
+        #[cfg(test)]
+        #[cfg(any(feature = "x", feature = "y", feature = "z", feature = "w"))]
+        mod get {
+            use super::*;
 
-    }
+            #[test]
+            #[cfg(feature = "x")]
+            fn getter_for_1d_points_work() {
+                let arr = [0];
+                let p = PointND::from(arr);
+                assert_eq!(*p.x(), arr[0]);
+            }
 
-    #[cfg(test)]
-    mod get {
-        use super::*;
+            #[test]
+            #[cfg(feature = "y")]
+            fn getters_for_2d_points_work() {
+                let arr = [0,1];
+                let p = PointND::from(arr);
 
-        #[test]
-        fn can_get_slice_by_range_index() {
-            let p = PointND::from([0,1,2,3,4]);
-            let slice = &p[0..3];
-            assert_eq!(slice, [0,1,2]);
+                assert_eq!(*p.x(), arr[0]);
+                assert_eq!(*p.y(), arr[1]);
+            }
+
+            #[test]
+            #[cfg(feature = "z")]
+            fn getters_for_3d_points_work() {
+                let arr = [0,1,2];
+                let p = PointND::from(arr);
+
+                assert_eq!(*p.x(), arr[0]);
+                assert_eq!(*p.y(), arr[1]);
+                assert_eq!(*p.z(), arr[2]);
+            }
+
+            #[test]
+            #[cfg(feature = "w")]
+            fn getters_for_4d_points_work() {
+                let arr = [0,1,2,3];
+                let p = PointND::from(arr);
+
+                assert_eq!(*p.x(), arr[0]);
+                assert_eq!(*p.y(), arr[1]);
+                assert_eq!(*p.z(), arr[2]);
+                assert_eq!(*p.w(), arr[3]);
+            }
+
         }
 
-        #[test]
-        #[should_panic]
-        fn cannot_get_out_of_bounds_index() {
-            let p = PointND::from([0,1,2]);
-            let _x = p[p.dims() + 1];
+        #[cfg(test)]
+        #[cfg(any(feature = "x", feature = "y", feature = "z", feature = "w"))]
+        mod set {
+            use super::*;
+
+            #[test]
+            #[cfg(feature = "x")]
+            fn setter_for_1d_points_work() {
+
+                let old_vals = [0];
+                let new_val = 4;
+                let mut p = PointND::from(old_vals);
+
+                p.set_x(new_val);
+                assert_eq!(*p.x(), new_val);
+            }
+
+            #[test]
+            #[cfg(feature = "y")]
+            fn setters_for_2d_points_work() {
+
+                let old_vals = [0,1];
+                let new_vals = [4,5];
+                let mut p = PointND::from(old_vals);
+
+                p.set_x(new_vals[0]);
+                p.set_y(new_vals[1]);
+
+                assert_eq!(*p.x(), new_vals[0]);
+                assert_eq!(*p.y(), new_vals[1]);
+            }
+
+            #[test]
+            #[cfg(feature = "z")]
+            fn setters_for_3d_points_work() {
+
+                let old_vals = [0,1,2];
+                let new_vals = [4,5,6];
+                let mut p = PointND::from(old_vals);
+
+                p.set_x(new_vals[0]);
+                p.set_y(new_vals[1]);
+                p.set_z(new_vals[2]);
+
+                assert_eq!(*p.x(), new_vals[0]);
+                assert_eq!(*p.y(), new_vals[1]);
+                assert_eq!(*p.z(), new_vals[2]);
+            }
+
+            #[test]
+            #[cfg(feature = "w")]
+            fn setters_for_4d_points_work() {
+
+                let old_vals = [0,1,2,3];
+                let new_vals = [4,5,6,7];
+                let mut p = PointND::from(old_vals);
+
+                p.set_x(new_vals[0]);
+                p.set_y(new_vals[1]);
+                p.set_z(new_vals[2]);
+                p.set_w(new_vals[3]);
+
+                assert_eq!(*p.x(), new_vals[0]);
+                assert_eq!(*p.y(), new_vals[1]);
+                assert_eq!(*p.z(), new_vals[2]);
+                assert_eq!(*p.w(), new_vals[3]);
+            }
+
         }
 
+        #[cfg(test)]
+        #[cfg(any(feature = "x", feature = "y", feature = "z", feature = "w"))]
+        mod shift {
+            use super::*;
 
-        #[test]
-        #[cfg(feature = "x")]
-        fn getter_for_1d_points_work() {
-            let arr = [0];
-            let p = PointND::from(arr);
-            assert_eq!(*p.x(), arr[0]);
-        }
+            #[test]
+            #[cfg(feature = "x")]
+            fn can_shift_1d_points() {
+                let mut p = PointND::from([0.1]);
+                p.shift_x(1.23);
 
-        #[test]
-        #[cfg(feature = "y")]
-        fn getters_for_2d_points_work() {
-            let arr = [0,1];
-            let p = PointND::from(arr);
+                assert_eq!(p.into_arr(), [1.33]);
+            }
 
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-        }
+            #[test]
+            #[cfg(feature = "y")]
+            fn can_shift_2d_points() {
+                let mut p = PointND::from([12, 345]);
+                p.shift_x(-22);
+                p.shift_y(-345);
 
-        #[test]
-        #[cfg(feature = "z")]
-        fn getters_for_3d_points_work() {
-            let arr = [0,1,2];
-            let p = PointND::from(arr);
+                assert_eq!(p.into_arr(), [-10, 0]);
+            }
 
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-            assert_eq!(*p.z(), arr[2]);
-        }
+            #[test]
+            #[cfg(feature = "z")]
+            fn can_shift_3d_points() {
+                let mut p = PointND::from([42.4, 2.85, 75.01]);
+                p.shift_x(40.6);
+                p.shift_y(-2.85);
+                p.shift_z(24.99);
 
-        #[test]
-        #[cfg(feature = "w")]
-        fn getters_for_4d_points_work() {
-            let arr = [0,1,2,3];
-            let p = PointND::from(arr);
+                assert_eq!(p.into_arr(), [83.0, 0.0, 100.0]);
+            }
 
-            assert_eq!(*p.x(), arr[0]);
-            assert_eq!(*p.y(), arr[1]);
-            assert_eq!(*p.z(), arr[2]);
-            assert_eq!(*p.w(), arr[3]);
-        }
+            #[test]
+            #[cfg(feature = "w")]
+            fn can_shift_4d_points() {
+                let mut p = PointND::from([0,1,2,3]);
+                p.shift_x(10);
+                p.shift_y(-2);
+                p.shift_z(5);
+                p.shift_w(0);
 
-    }
+                assert_eq!(p.into_arr(), [10, -1, 7, 3]);
+            }
 
-    #[cfg(test)]
-    mod set {
-        use super::*;
-
-        #[test]
-        fn can_set_value_by_index() {
-
-            let mut p = PointND::from([0,1,2]);
-
-            let new_val = 9999;
-            p[1] = new_val;
-
-            assert_eq!(p.into_arr(), [0, new_val, 2]);
-        }
-
-        #[test]
-        #[cfg(feature = "x")]
-        fn setter_for_1d_points_work() {
-
-            let old_vals = [0];
-            let new_val = 4;
-            let mut p = PointND::from(old_vals);
-
-            p.set_x(new_val);
-            assert_eq!(*p.x(), new_val);
-        }
-
-        #[test]
-        #[cfg(feature = "y")]
-        fn setters_for_2d_points_work() {
-
-            let old_vals = [0,1];
-            let new_vals = [4,5];
-            let mut p = PointND::from(old_vals);
-
-            p.set_x(new_vals[0]);
-            p.set_y(new_vals[1]);
-
-            assert_eq!(*p.x(), new_vals[0]);
-            assert_eq!(*p.y(), new_vals[1]);
-        }
-
-        #[test]
-        #[cfg(feature = "z")]
-        fn setters_for_3d_points_work() {
-
-            let old_vals = [0,1,2];
-            let new_vals = [4,5,6];
-            let mut p = PointND::from(old_vals);
-
-            p.set_x(new_vals[0]);
-            p.set_y(new_vals[1]);
-            p.set_z(new_vals[2]);
-
-            assert_eq!(*p.x(), new_vals[0]);
-            assert_eq!(*p.y(), new_vals[1]);
-            assert_eq!(*p.z(), new_vals[2]);
-        }
-
-        #[test]
-        #[cfg(feature = "w")]
-        fn setters_for_4d_points_work() {
-
-            let old_vals = [0,1,2,3];
-            let new_vals = [4,5,6,7];
-            let mut p = PointND::from(old_vals);
-
-            p.set_x(new_vals[0]);
-            p.set_y(new_vals[1]);
-            p.set_z(new_vals[2]);
-            p.set_w(new_vals[3]);
-
-            assert_eq!(*p.x(), new_vals[0]);
-            assert_eq!(*p.y(), new_vals[1]);
-            assert_eq!(*p.z(), new_vals[2]);
-            assert_eq!(*p.w(), new_vals[3]);
-        }
-
-    }
-
-    #[cfg(test)]
-    mod shift {
-        use super::*;
-
-        #[test]
-        #[cfg(feature = "x")]
-        fn can_shift_1d_points() {
-            let mut p = PointND::from([0.1]);
-            p.shift_x(1.23);
-
-            assert_eq!(p.into_arr(), [1.33]);
-        }
-
-        #[test]
-        #[cfg(feature = "y")]
-        fn can_shift_2d_points() {
-            let mut p = PointND::from([12, 345]);
-            p.shift_x(-22);
-            p.shift_y(-345);
-
-            assert_eq!(p.into_arr(), [-10, 0]);
-        }
-
-        #[test]
-        #[cfg(feature = "z")]
-        fn can_shift_3d_points() {
-            let mut p = PointND::from([42.4, 2.85, 75.01]);
-            p.shift_x(40.6);
-            p.shift_y(-2.85);
-            p.shift_z(24.99);
-
-            assert_eq!(p.into_arr(), [83.0, 0.0, 100.0]);
-        }
-
-        #[test]
-        #[cfg(feature = "w")]
-        fn can_shift_4d_points() {
-            let mut p = PointND::from([0,1,2,3]);
-            p.shift_x(10);
-            p.shift_y(-2);
-            p.shift_z(5);
-            p.shift_w(0);
-
-            assert_eq!(p.into_arr(), [10, -1, 7, 3]);
         }
 
     }
+
+
+
+
+
+
 
     #[cfg(test)]
     mod from_and_into {
@@ -1254,8 +1308,7 @@ mod tests {
             assert_eq!(p.dims(), 3);
 
             let p: PointND<i32, 4> = [22; 4].into();
-            let p = p.apply(|i| i / 2);
-            assert_eq!(p.into_arr(), [11; 4]);
+            assert_eq!(p.into_arr(), [22; 4]);
         }
 
         #[test]

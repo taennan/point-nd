@@ -17,18 +17,19 @@ categories = ["data-structures", "graphics", "no-std"]
 arrayvec = { version = "0.7.2", default-features = false }
 
 [features]
-default = ["appliers", "var_dims", "conv_methods", "dim_macros"]
-full = ["default", "std", "serde"]
+default = ["appliers", "conv_methods", "dim_macros"]
+full = ["default", "var_dims"]
 
+# Get, Set and Shift x, y, z and w values of PointND's from 1..=4 dimensions
 x = []
 y = []
 z = []
 w = []
 conv_methods = ["x", "y", "z", "w"]
 
+# Allows use of apply, apply_dims, apply_vals and apply_point methods
 appliers = []
+# Allows use of dim, dims and dimr macros
 dim_macros = []
+# Alows use of extend and contract methods
 var_dims = []
-
-std = []
-serde = []

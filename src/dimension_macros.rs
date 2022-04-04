@@ -1,3 +1,4 @@
+#![cfg(feature = "dim_macros")]
 
 /**
  Converts an identifier _x_, _y_, _z_ or _w_ to a ```usize``` value for indexing collections.
@@ -76,7 +77,6 @@
  # }
  ```
  */
-#[cfg(feature = "dim_macros")]
 #[macro_export]
 macro_rules! dim {
 
@@ -134,7 +134,6 @@ macro_rules! dim {
  # }
  ```
  */
-#[cfg(feature = "dim_macros")]
 #[macro_export]
 macro_rules! dims {
 
@@ -216,7 +215,6 @@ macro_rules! dims {
  # }
  ```
  */
-#[cfg(feature = "dim_macros")]
 #[macro_export]
 macro_rules! dimr {
 
@@ -244,7 +242,6 @@ macro_rules! dimr {
 
 }
 
-#[cfg(feature = "dim_macros")]
 #[cfg(test)]
 mod tests {
 
@@ -260,12 +257,7 @@ mod tests {
     fn dims_works() {
         assert_eq!(dims![x,y,z,w], [0,1,2,3]);
         assert_eq!(dims![x,z,y],   [0,2,1]);
-    }
-
-    #[test]
-    fn can_repeat_identifier_in_dims() {
-        assert_eq!(dims![x,x,x], [0,0,0]);
-        assert_eq!(dims![x,y,x], [0,1,0]);
+        assert_eq!(dims![x,y,x,y], [0,1,0,1]);
     }
 
     #[test]
