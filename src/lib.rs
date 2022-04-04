@@ -1,3 +1,5 @@
+#![no_std]
+
 //!
 //! A simple and flexible multidimensional coordinate point, based on an array.
 //!
@@ -19,13 +21,13 @@
 //!
 //!     - Enables the following sub-features (each of which can be enabled individually if needed):
 //!
-//!         - ```x```: Methods for ```1D``` points
+//!         - ```x```: Convenience methods for ```1D``` points
 //!
-//!         - ```y```: Methods for ```2D``` points
+//!         - ```y```: Convenience methods for ```2D``` points
 //!
-//!         - ```z```: Methods for ```3D``` points
+//!         - ```z```: Convenience methods for ```3D``` points
 //!
-//!         - ```w```: Methods for ```4D``` points
+//!         - ```w```: Convenience methods for ```4D``` points
 //!
 //! - ```dim_macros```
 //!
@@ -39,12 +41,14 @@
 //!
 //!     - Methods which allow closures to be passed to points in order to transform values.
 //!
+//!     - If this and the ```var_dims``` feature are disabled, this crate will include zero dependencies
+//!
 //! - ```var_dims```
 //!
 //!     - Methods which append or remove values from points.
 //!
-
-#![no_std]
+//!     - If this and the ```appliers``` feature are disabled, this crate will include zero dependencies
+//!
 
 mod dimension_macros;
 mod point;

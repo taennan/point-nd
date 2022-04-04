@@ -164,8 +164,7 @@ assert_eq!(p.into_arr(), [-10, -2, 0, 2, 10])
 
 # Querying Size
 
-The number of dimensions can be retrieved using
-the ```dims()``` method (short for _dimensions_)
+The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_).
 
 ```
 # use point_nd::PointND;
@@ -301,11 +300,11 @@ pub struct PointND<T, const N: usize>([T; N]);
 
 impl<T, const N: usize> PointND<T, N> {
 
-    /**
-     Returns the number of dimensions of the point (a 2D point will return 2, a 3D point 3, _etc_)
-
-     Equivalent to calling ```len()```
-     */
+    ///
+    /// Returns the number of dimensions of the point (a 2D point will return 2, a 3D point 3, _etc_)
+    ///
+    /// Equivalent to calling ```len()```
+    ///
     pub fn dims(&self) -> usize {
         self.0.len()
     }
@@ -357,15 +356,11 @@ impl<T, const N: usize> PointND<T, N> {
         check_transform_cap!(N, "apply");
 
         let mut arr_v = ArrayVec::<U, N>::new();
-        let mut self_ = ArrayVec::from(self.into_arr());
-        // Need to reverse as we'll be popping from the back of the array
-        self_.reverse();
+        let mut this = ArrayVec::from(self.into_arr());
 
         for _ in 0..N {
-            // Items CANNOT be iterated, only popped
-            let item = self_.pop().unwrap();
-            let item = modifier(item);
-            arr_v.push(item);
+            let item = this.pop_at(0).unwrap();
+            arr_v.push(modifier(item));
         }
 
         arrvec_into_inner!(arr_v, "apply")
@@ -405,12 +400,10 @@ impl<T, const N: usize> PointND<T, N> {
         check_transform_cap!(N, "apply_dims");
 
         let mut arr_v = ArrayVec::<T, N>::new();
-        let mut self_ = ArrayVec::from(self.into_arr());
-        // Need to reverse as we'll be popping from the back of the array
-        self_.reverse();
+        let mut this = ArrayVec::from(self.into_arr());
 
         for i in 0..N {
-            let item = self_.pop().unwrap();
+            let item = this.pop_at(0).unwrap();
             if dims.contains(&i) {
                 arr_v.push(modifier(item));
             } else {
@@ -482,21 +475,21 @@ impl<T, const N: usize> PointND<T, N> {
      - If the dimensions of ```self``` or ```values``` are greater than ```u32::MAX```.
      */
     #[cfg(feature = "appliers")]
-    pub fn apply_vals<U, V>(self, values: [V; N], modifier: ApplyValsFn<T, U, V>) -> PointND<U, N> {
+    pub fn apply_vals<U, V>(
+        self,
+        values: [V; N],
+        modifier: ApplyValsFn<T, U, V>
+    ) -> PointND<U, N> {
 
         check_transform_cap!(N, "apply_vals");
 
         let mut arr_v = ArrayVec::<U, N>::new();
         let mut vals = ArrayVec::from(values);
-        let mut self_ = ArrayVec::from(self.into_arr());
-
-        // Need to reverse as we'll be popping from the back of the arrays
-        vals.reverse();
-        self_.reverse();
+        let mut this = ArrayVec::from(self.into_arr());
 
         for _ in 0..N {
-            let a = self_.pop().unwrap();
-            let b = vals.pop().unwrap();
+            let a = this.pop_at(0).unwrap();
+            let b = vals.pop_at(0).unwrap();
             arr_v.push(modifier(a, b));
         }
 
@@ -538,100 +531,99 @@ impl<T, const N: usize> PointND<T, N> {
      - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
      */
     #[cfg(feature = "appliers")]
-    pub fn apply_point<U, V>(self, other: PointND<V, N>, modifier: ApplyPointFn<T, U, V>) -> PointND<U, N> {
+    pub fn apply_point<U, V>(
+        self,
+        other: PointND<V, N>,
+        modifier: ApplyPointFn<T, U, V>
+    ) -> PointND<U, N> {
 
         check_transform_cap!(N, "apply_point");
 
         self.apply_vals(other.into_arr(), modifier)
     }
 
-
-    /**
-     Consumes ```self``` and returns a new ```PointND``` with
-     items from ```values``` appended to items from the original.
-
-     ```
-     # use point_nd::PointND;
-     let p = PointND
-         ::from([0,1])
-         .extend([2,3]);
-      assert_eq!(p.into_arr(), [0,1,2,3]);
-     ```
-
-     # Enabled by features:
-
-     - ```var_dims```
-
-     # Panics
-
-     - If the combined length of ```self``` and ```values``` are greater than ```u32::MAX```.
-
-     ```should_panic
-     # use point_nd::PointND;
-     const N: usize = u32::MAX as usize;
-     const L: usize = 1;
-     const M: usize = N + L;
-
-     let p: PointND<_, M> = PointND
-         ::from([0; N])
-         .extend([1; L]);
-     ```
-     */
+    ///
+    /// Consumes ```self``` and returns a new ```PointND``` with items from ```values``` appended to
+    /// items from the original.
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// let p = PointND
+    ///     ::from([0,1])
+    ///     .extend([2,3]);
+    ///  assert_eq!(p.into_arr(), [0,1,2,3]);
+    /// ```
+    ///
+    /// # Enabled by features:
+    ///
+    /// - ```var_dims```
+    ///
+    /// # Panics
+    ///
+    /// - If the combined length of ```self``` and ```values``` are greater than ```u32::MAX```.
+    ///
+    /// ```should_panic
+    /// # use point_nd::PointND;
+    /// const N: usize = u32::MAX as usize;
+    /// const L: usize = 1;
+    /// const M: usize = N + L;
+    ///
+    /// let p: PointND<_, M> = PointND
+    ///     ::from([0; N])
+    ///     .extend([1; L]);
+    /// ```
+    ///
     #[cfg(feature = "var_dims")]
     pub fn extend<const L: usize, const M: usize>(self, values: [T; L]) -> PointND<T, M> {
 
         check_transform_cap!(L + N, "extend");
 
         let mut arr_v = ArrayVec::<T, M>::new();
-        let mut self_ = ArrayVec::from(self.into_arr());
+        let mut this = ArrayVec::from(self.into_arr());
         let mut vals = ArrayVec::from(values);
 
-        // Need to reverse as we'll be popping from the back of the arrays
-        self_.reverse();
-        vals.reverse();
-
-        for _ in 0..N { arr_v.push(self_.pop().unwrap()); }
-        for _ in 0..L { arr_v.push(vals.pop().unwrap());  }
+        for _ in 0..N { arr_v.push(this.pop_at(0).unwrap()); }
+        for _ in 0..L { arr_v.push(vals.pop_at(0).unwrap());  }
 
         arrvec_into_inner!(arr_v, "extend")
     }
 
 
-    /**
-     Consumes ```self``` and returns a new ```PointND``` which
-     retains only the first ```dims``` items of the original.
-
-     This method always removes the rearmost items first.
-
-     ```
-     # use point_nd::PointND;
-     let p = PointND
-        ::from([0,1,2,3])
-        .contract(2);
-     assert_eq!(p.dims(), 2);
-     assert_eq!(p.into_arr(), [0,1]);
-     ```
-
-    # Enabled by features:
-
-     - ```var_dims```
-
-     # Panics
-
-     - If ```dims``` is greater than the original dimensions of the point (_a.k.a_ -
-       you cannot shorten the dimensions of a point to more than it had originally).
-
-     ```should_panic
-     # use point_nd::PointND;
-     let p = PointND
-        ::from([0,1,2])
-        .contract(1_000_000);
-     # // Just to silence the type error
-     # let _p2 = PointND::from([0,1,2]).apply_point(p, |a, b| a + b);
-     ```
-
-     - If the dimensions of ```self``` are greater than ```u32::MAX```.
-     */
+    ///
+    /// Consumes ```self``` and returns a new ```PointND``` which retains only the first ```dims```
+    /// items of the original.
+    ///
+    /// This method always removes the rearmost items first.
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// let p = PointND
+    ///     ::from([0,1,2,3])
+    ///     .contract(2);
+    /// assert_eq!(p.dims(), 2);
+    /// assert_eq!(p.into_arr(), [0,1]);
+    /// ```
+    ///
+    /// # Enabled by features:
+    ///
+    /// - ```var_dims```
+    ///
+    /// # Panics
+    ///
+    /// - If ```dims``` is greater than the original dimensions of the point (_a.k.a_ - you cannot
+    ///   shorten the dimensions of a point to more than it had originally).
+    ///
+    /// ```should_panic
+    /// # use point_nd::PointND;
+    /// let p = PointND
+    ///     ::from([0,1,2])
+    ///     .contract(1_000_000);
+    /// # // Just to silence the type error
+    /// # let _p2 = PointND::from([0,1,2]).apply_point(p, |a, b| a + b);
+    /// ```
+    ///
+    /// - If the dimensions of ```self``` are greater than ```u32::MAX```.
+    ///
     #[cfg(feature = "var_dims")]
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
 
@@ -642,12 +634,10 @@ impl<T, const N: usize> PointND<T, N> {
         }
 
         let mut arr_v = ArrayVec::<T, M>::new();
-        let mut self_ = ArrayVec::from(self.into_arr());
-        // Have to reverse as we'll be popping from the back
-        self_.reverse();
+        let mut this = ArrayVec::from(self.into_arr());
 
         for _ in 0..dims {
-            let item = self_.pop().unwrap();
+            let item = this.pop_at(0).unwrap();
             arr_v.push(item);
         }
 
@@ -656,15 +646,12 @@ impl<T, const N: usize> PointND<T, N> {
 
 }
 
-
+// From and Fill
 impl<T, const N: usize> PointND<T, N>
-    where T: Clone + Copy {
+    where T: Copy {
 
     /**
      Returns a new ```PointND``` with values from the specified slice
-
-     This constructor is probably only useful when ```Vec```'s of unknown length are
-     the only collections available
 
      If the compiler is not able to infer the dimensions (a.k.a - length)
      of the point, it needs to be explicitly specified
@@ -682,6 +669,9 @@ impl<T, const N: usize> PointND<T, N>
      let p3 = p1.apply_point(p2, |a, b| a + b);
      ```
 
+     If the length of the slice being passed is uncertain, it is recommended to use the `try_from()`
+     method for more graceful error handling.
+
      # Panics
 
      - If the slice passed cannot be converted into an array
@@ -698,23 +688,23 @@ impl<T, const N: usize> PointND<T, N>
         PointND::from(arr)
     }
 
-    /**
-     Returns a new ```PointND``` with all values set as specified
-
-     If the compiler is not able to infer the dimensions (a.k.a - length)
-     of the point, it needs to be explicitly specified
-
-     See the ```from_slice()``` function for cases when generics don't need to be explicitly specified
-
-     ```
-     # use point_nd::PointND;
-     // A point with 10 dimensions with all values set to 2
-     let p = PointND::<_, 10>::fill(2);
-
-     assert_eq!(p.dims(), 10);
-     assert_eq!(p.into_arr(), [2; 10]);
-     ```
-     */
+    ///
+    /// Returns a new ```PointND``` with all values set as specified
+    ///
+    /// If the compiler is not able to infer the dimensions (a.k.a - length)
+    /// of the point, it needs to be explicitly specified
+    ///
+    /// See the ```from_slice()``` function for cases when generics don't need to be explicitly specified
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// // A 10 dimensional point with all values set to 2
+    /// let p = PointND::<_, 10>::fill(2);
+    ///
+    /// assert_eq!(p.dims(), 10);
+    /// assert_eq!(p.into_arr(), [2; 10]);
+    /// ```
+    ///
     pub fn fill(value: T) -> Self {
         PointND::from([value; N])
     }
@@ -731,6 +721,7 @@ impl<T, const N: usize> Deref for PointND<T, N> {
     }
 
 }
+
 impl<T, const N: usize> DerefMut for PointND<T, N> {
 
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -741,7 +732,17 @@ impl<T, const N: usize> DerefMut for PointND<T, N> {
 
 
 // Convenience Getters and Setters
-/// Functions for safely getting and setting the value contained by a 1D ```PointND```
+///
+/// Methods for safely getting and setting the value contained by a 1D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```x```
+///
 #[cfg(feature = "x")]
 impl<T> PointND<T, 1> {
 
@@ -750,7 +751,17 @@ impl<T> PointND<T, 1> {
     pub fn set_x(&mut self, new_value: T) { self[0] = new_value; }
 
 }
-/// Functions for safely getting and setting the values contained by a 2D ```PointND```
+///
+/// Methods for safely getting and setting the values contained by a 2D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```y```
+///
 #[cfg(feature = "y")]
 impl<T> PointND<T, 2> {
 
@@ -761,7 +772,17 @@ impl<T> PointND<T, 2> {
     pub fn set_y(&mut self, new_value: T) { self[1] = new_value; }
 
 }
-/// Functions for safely getting and setting the values contained by a 3D ```PointND```
+///
+/// Methods for safely getting and setting the values contained by a 3D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```z```
+///
 #[cfg(feature = "z")]
 impl<T> PointND<T, 3>  {
 
@@ -774,7 +795,17 @@ impl<T> PointND<T, 3>  {
     pub fn set_z(&mut self, new_value: T) { self[2] = new_value; }
 
 }
-/// Functions for safely getting and setting the values contained by a 4D ```PointND```
+///
+/// Methods for safely getting and setting the values contained by a 4D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```w```
+///
 #[cfg(feature = "w")]
 impl<T> PointND<T, 4>  {
 
@@ -809,7 +840,17 @@ impl<T> PointND<T, 1>
     pub fn shift_x(&mut self, delta: T) { self[0] += delta; }
 
 }
-/// Functions for safely transforming the values contained by a 2D ```PointND```
+///
+/// Methods for safely transforming the values contained by a 2D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```y```
+///
 #[cfg(feature = "y")]
 impl<T> PointND<T, 2>
     where T: AddAssign {
@@ -818,7 +859,17 @@ impl<T> PointND<T, 2>
     pub fn shift_y(&mut self, delta: T) { self[1] += delta; }
 
 }
-/// Functions for safely transforming the values contained by a 3D ```PointND```
+///
+/// Methods for safely transforming the values contained by a 3D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```z```
+///
 #[cfg(feature = "z")]
 impl<T> PointND<T, 3>
     where T: AddAssign {
@@ -828,7 +879,17 @@ impl<T> PointND<T, 3>
     pub fn shift_z(&mut self, delta: T) { self[2] += delta; }
 
 }
-/// Functions for safely transforming the values contained by a 4D ```PointND```
+///
+/// Methods for safely transforming the values contained by a 4D ```PointND```
+///
+/// # Enabled by features:
+///
+/// - ```default```
+///
+/// - ```conv_methods```
+///
+/// - ```w```
+///
 #[cfg(feature = "w")]
 impl<T> PointND<T, 4>
     where T: AddAssign {
@@ -849,10 +910,10 @@ impl<T, const N: usize> From<[T; N]> for PointND<T, N> {
 
 }
 
-impl<T, const N: usize> Into<[T; N]> for PointND<T, N>  {
+impl<T, const N: usize> From<PointND<T, N>> for [T; N] {
 
-    fn into(self) -> [T; N] {
-        self.into_arr()
+    fn from(point: PointND<T, N>) -> Self {
+        point.into_arr()
     }
 
 }
@@ -908,7 +969,7 @@ mod tests {
     mod constructors {
         use super::*;
 
-        // The from() constructor is under tests::from
+        // The from() constructor is under tests::from_and_into
 
         #[test]
         fn from_slice_works() {
@@ -1292,12 +1353,6 @@ mod tests {
 
     }
 
-
-
-
-
-
-
     #[cfg(test)]
     mod from_and_into {
         use super::*;
@@ -1331,7 +1386,6 @@ mod tests {
         }
 
         #[test]
-        #[allow(unused_variables)]
         fn can_try_from_slice_of_same_len() {
             let slice = &[0,1,2,3,4][..];
             let p: Result<PointND<_, 5>, _> = slice.try_into();
