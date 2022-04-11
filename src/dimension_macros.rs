@@ -225,7 +225,7 @@ macro_rules! dimr {
     ( $a:ident..=$b:ident ) => { dim!($a)..=dim!($b) };
 
     // Ident to Expr
-    //  Range z...6
+    //  Range z..6
     ( $a:ident..$b:expr ) => { dim!($a)..$b };
     //  RangeInclusive w..=9
     ( $a:ident..=$b:expr ) => { dim!($a)..=$b };
@@ -239,6 +239,12 @@ macro_rules! dimr {
     // Ident to Inf
     //  RangeFrom x..
     ( $a:ident.. ) => { dim!($a).. };
+
+    // Expr to Ident
+    //  Range 0..z
+    ( ($a:expr)..$b:ident )  => { $a..dim!($b) };
+    // RangeInclusive 1..=w
+    ( ($a:expr)..=$b:ident )  => { $a..=dim!($b) };
 
 }
 
@@ -304,6 +310,28 @@ mod tests {
         let arr = [0,1,2,3,4,5,6,7,8,9];
         let slice = &arr[dimr![x..]];
         assert_eq!(*slice, arr);
+    }
+
+    #[test]
+    fn dimr_expr_to_ident_works() {
+        let arr = [0,1,2,3,4];
+        let slice = &arr[dimr!((0)..z)];
+        assert_eq!(*slice, [0,1]);
+
+        let expr = 1usize;
+        let slice = &arr[dimr!((expr)..w)];
+        assert_eq!(*slice, [1, 2]);
+    }
+
+    #[test]
+    fn dimr_expr_to_eq_ident_works() {
+        let arr = [0,1,2,3,4];
+        let slice = &arr[dimr!((0)..=z)];
+        assert_eq!(*slice, [0,1,2]);
+        
+        let expr = 1usize;
+        let slice = &arr[dimr!((expr)..=w)];
+        assert_eq!(*slice, [1,2,3]);
     }
 
 }
