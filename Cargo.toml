@@ -3,7 +3,7 @@ name = "point-nd"
 version = "0.4.1"
 edition = "2021"
 description = "A simple and flexible no-std struct for modelling points on an axis"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 authors = [
     "Taennan taennan@zohomail.com"
 ]
