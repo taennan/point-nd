@@ -9,7 +9,7 @@
 //!
 //! This crate is ```#![no_std]``` compatible.
 //!
-//! This crate uses constant generics, it is recommended for use with a Rust version of **at least 1.51**
+//! ```PointND``` uses constant generics, it is recommended for use with a Rust version of **at least 1.51**
 //!
 //! # Features
 //!

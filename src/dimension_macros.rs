@@ -7,7 +7,7 @@
 
  It is recommended to use parentheses when calling this macro for clarity.
 
-## Possible Variations
+# Possible Variations
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -31,20 +31,21 @@
  # }
  ```
 
- This can be especially useful for indexing a ```PointND```.
+ # Usage with PointND's
 
- If a dimension is passed that is out of bounds, it will result in a compile time error.
+ This can be especially useful for indexing a ```PointND```.
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dim;
  # use point_nd::PointND;
- let p = PointND::from([0,1,2]);
- let y = p[dim!(y)];
- assert_eq!(y, 1);
+ let p = PointND::from([10, 20, 30]);
 
- // ERROR: Index out of bounds
- // let w_val = p[dim!(w)];
+ let x = p.get(dim!(x)).unwrap();
+ let y = p[dim!(y)];
+
+ assert_eq!(*x, 10);
+ assert_eq!(y, 20);
  # }
  ```
 
@@ -54,7 +55,6 @@
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dim;
  # use point_nd::PointND;
- // Works with points of any dimensions
  let five_d_point = PointND::from([0,1,2,3,4]);
  let z = five_d_point[dim!(z)];
  assert_eq!(z, 2);
@@ -69,11 +69,12 @@
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dim;
  let array = [0,1,2,3];
+
  let first_item = array[dim!(x)];
  let second     = array[dim!(y)];
- // ...etc
- # assert_eq!(first_item, 0);
- # assert_eq!(second, 1);
+
+ assert_eq!(first_item, 0);
+ assert_eq!(second, 1);
  # }
  ```
  */
@@ -94,7 +95,7 @@ macro_rules! dim {
 
  It is recommended to use square brackets when calling this macro for clarity
 
- ## Possible Variations
+ # Possible Variations
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -103,14 +104,13 @@ macro_rules! dim {
  let arr =  dims![x, y, z, w];
  assert_eq!(arr, [0, 1, 2, 3]);
 
- // Copy specified item N times
+ // Repeat specified item N times
  let arr =  dims![w; 5];
  assert_eq!(arr, [3, 3, 3, 3, 3]);
  # }
  ```
 
- Using identifiers multiple times is allowed, this is only
- a more readable way to specify indexes after all
+ Using identifiers multiple times is allowed, this is only a more readable way to specify indexes after all
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -119,6 +119,8 @@ macro_rules! dim {
  assert_eq!(index_arr, [0,0, 1,1, 2,2]);
  # }
  ```
+
+ # Usage with PointND's
 
  This can be especially useful with the ```apply_dims``` method available to ```PointND```'s
 
@@ -131,6 +133,19 @@ macro_rules! dim {
      .apply_dims(&dims![y,w], |item| item * 2)   // Multiplies items 1 and 3 by 2
      .apply_dims(&dims![x,z], |item| item + 10); // Adds 10 to items 0 and 2
  assert_eq!(p.into_arr(), [10, 2, 12, 6]);
+ # }
+ ```
+
+ The dimensions of the point being transformed don't necessarily have to be within ```x..=w```
+
+ ```
+ # #[macro_use] extern crate point_nd; fn main() {
+ # use point_nd::dims;
+ # use point_nd::PointND;
+ let five_d_point = PointND
+     ::from([0,1,2,3,4])
+     .apply_dims(&dims![w,z], |item| item - 10);
+ assert_eq!(five_d_point.into_arr(), [0, 1, -8, -7, 4]);
  # }
  ```
  */
@@ -152,7 +167,7 @@ macro_rules! dims {
 
  It is recommended to use parentheses when calling this macro for clarity
 
- ### Possible Variations:
+ # Possible Variations
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -195,7 +210,9 @@ macro_rules! dims {
  # }
  ```
 
- This is especially useful when taking slices of a ```PointND```
+ # Usage with PointND's
+
+ This is especially useful when taking slices of a ```PointND```.
 
  ```
  # #[macro_use] extern crate point_nd; fn main() {
@@ -215,11 +232,12 @@ macro_rules! dims {
  # #[macro_use] extern crate point_nd; fn main() {
  # use point_nd::dimr;
  let array = [0,1,2,3,4,5];
+
  let first_to_third  = &array[dimr!(x..w)];
  let fourth_to_sixth = &array[dimr!(w..=5)];
 
- # assert_eq!(*first_to_third,  [0, 1, 2]);
- # assert_eq!(*fourth_to_sixth, [3, 4, 5]);
+ assert_eq!(*first_to_third,  [0, 1, 2]);
+ assert_eq!(*fourth_to_sixth, [3, 4, 5]);
  # }
  ```
  */
