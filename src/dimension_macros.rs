@@ -184,6 +184,14 @@ macro_rules! dims {
 
  // RangeInclusive with identifier and expression
  assert_eq!(dimr!(x..=7), 0..=7usize);
+
+ // Range with expression and identifier
+ //  The parentheses around the expression are compulsory
+ assert_eq!(dimr!((0)..z), 0..2usize);
+
+ // RangeInclusive with expression and identifier
+ //  The parentheses around the expression are compulsory
+ assert_eq!(dimr!((1)..=w), 1..=3usize);
  # }
  ```
 
@@ -328,7 +336,7 @@ mod tests {
         let arr = [0,1,2,3,4];
         let slice = &arr[dimr!((0)..=z)];
         assert_eq!(*slice, [0,1,2]);
-        
+
         let expr = 1usize;
         let slice = &arr[dimr!((expr)..=w)];
         assert_eq!(*slice, [1,2,3]);
