@@ -178,7 +178,8 @@ assert_eq!(p.len(), 2);
 
 # Transforming Values
 
-If the dimensions of the point are within ```1..=4```, it is recommended to use the convenience setters
+If the dimensions of the point are within ```1..=4```, it is recommended to use the convenience
+methods.
 
 ```
 # use point_nd::PointND;
@@ -190,9 +191,17 @@ let mut p = PointND::from([0, 1]);
 //  points with 3 and 4 dimensions respectively
 p.set_x(-10);
 p.set_y(-20);
-
 assert_eq!(*p.x(), -10);
 assert_eq!(*p.y(), -20);
+
+// We can AddAssign the values of a point with the
+//  shift methods
+// Like set, there are methods available for points
+//  of 3 and 4 dimensions
+p.shift_x(5);
+p.shift_y(25);
+assert_eq!(*p.x(), -5);
+assert_eq!(*p.y(), 5);
 ```
 
 The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
@@ -202,15 +211,14 @@ Instead, we must use the native implementations of the contained array
 ```
 # use point_nd::PointND;
 # use point_nd::dim;
-let mut p = PointND::from([0, 1]);
+let mut p = PointND::from([0, 1, 2, 3, 4, 5]);
 
 // Sets x via indexing
 p[0] = -100;
-assert_eq!(*p.x(), -100);
-
+# assert_eq!(p[0], -100);
 // Sets y via indexing and dimension macros
 p[dim!(y)] = -100;
-assert_eq!(*p.x(), *p.y());
+# assert_eq!(p[0], p[1]);
 ```
 
 ### Appliers
@@ -248,11 +256,11 @@ for _ in p.iter_mut()  { /* Change stuff */ }
 for _ in p.into_iter() { /* Move stuff (unless items implement Copy) */ }
 ```
 
-It must be noted that if the items implement ```Copy```, using
-```into_iter()``` will not actually move the point out of scope.
+It must be noted that if the items implement ```Copy```, using ```into_iter()``` will not actually
+move the point out of scope.
 
-If this behaviour is necessary, use the ```into_arr()``` method
-to consume the point and move the contained array into the loop
+If this behaviour is necessary, use the ```into_arr()``` method to consume the point and move the
+contained array into the loop
 
 ```
 # use point_nd::PointND;
