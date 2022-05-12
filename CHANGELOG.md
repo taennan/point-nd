@@ -12,3 +12,12 @@
 - Removed ```into_vec()``` method for ```no_std``` compatibility
 - Removed (embarrassingly) incorrect documentation
 
+## ..=0.4.1
+
+- Development  moved too fast to keep track
+
+# Upcoming Changes
+
+## 0.6.0
+
+- Moving dimension macros into separate crate

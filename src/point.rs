@@ -49,6 +49,9 @@ macro_rules! arrvec_into_inner {
 }
 
 
+// IMPORTANT!
+// - These docs have been written with the assumption that default features have been enabled
+// - Running doctests without default features will result in test failures
 /**
 
 The whole _point_ of the crate.
@@ -101,10 +104,10 @@ assert_eq!(p1, p2);
 
 # Getting Values
 
-If the dimensions of the point are within ```1..=4```, it is recommended to
-use the convenience getters ```x()```, ```y()```, ```z()``` and ```w()```
+If the dimensions of the point are within **1..=4**, it is recommended to
+use the convenience getters `x()`, `y()`, `z()` and `w()`
 
-The above all return references to the value, regardless of whether they implement ```Copy```
+The above all return references to the value, regardless of whether they implement `Copy`
 
 ```
 # use point_nd::PointND;
@@ -125,7 +128,7 @@ assert_eq!(*y, 1);
 
 The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
 
-Instead, we must use the native implementations of the contained array
+Instead, we must use the native implementations of the contained array.
 
 ```
 # use point_nd::PointND;
@@ -135,26 +138,25 @@ let p = PointND::from([0,1,2,3,4,5]);
 // ERROR: Not implemented for PointND of 6 dimensions
 //  let x = p.x();
 
-// Indexing
-let x: i32 = p[0];
+let x = p[0];
+let y = p.get(1);
+let z_to_last = &p[2..];
+
 assert_eq!(x, 0);
-
-// Safely Getting
-let y: Option<&i32> = p.get(1);
 assert_eq!(*y.unwrap(), 1);
-
-// Slicing
-let z_to_last: &[i32] = &p[2..];
-assert_eq!(z_to_last, [2,3,4,5]);
+assert_eq!(z_to_last, &[2, 3, 4, 5]);
 
 // The dimension macros provided by this crate can make
 //  direct indexing easier and more readable
 // See their documentation for more info
 let z = p[dim!(z)];
-let the_rest = &p[dimr!(w..)];
+let w_to_last = &p[dimr!(w..)];
+
+assert_eq!(z, 2);
+assert_eq!(w_to_last, &[3, 4, 5]);
 ```
 
-To get **all** the values contained by a point, use the ```into_arr()``` method
+To get **all** the values contained by a point, use the `into_arr()` method
 
 ```
 # use point_nd::PointND;
@@ -164,7 +166,7 @@ assert_eq!(p.into_arr(), [-10, -2, 0, 2, 10])
 
 # Querying Size
 
-The number of dimensions can be retrieved using the ```dims()``` method (short for _dimensions_).
+The number of dimensions can be retrieved using the `dims()` method (short for _dimensions_).
 
 ```
 # use point_nd::PointND;
@@ -178,8 +180,8 @@ assert_eq!(p.len(), 2);
 
 # Transforming Values
 
-If the dimensions of the point are within ```1..=4```, it is recommended to use the convenience
-methods.
+If the dimensions of the point are within **1..=4**, it is recommended to use the convenience
+`set` and `shift` methods.
 
 ```
 # use point_nd::PointND;
@@ -204,7 +206,7 @@ assert_eq!(*p.x(), -5);
 assert_eq!(*p.y(), 5);
 ```
 
-The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
+The above methods are not implemented for `PointND`'s with more than 4 dimensions.
 
 Instead, we must use the native implementations of the contained array
 
@@ -275,14 +277,11 @@ for _ in p.into_arr().into_iter() { /* Move stuff */ }
 
 ### Convenience Methods
 
-As stated earlier, certain methods for accessing and setting the values contained by a ```PointND```
+As stated earlier, certain methods for accessing and setting the values contained by a `PointND`
 are only implemented for points within **1..=4** dimensions.
 
-This was done to ensure that the compiler could check if out of index values were being accessed.
-If it these methods were implemented for ```PointND```'s of any dimension, these errors would have
-to be caught at runtime.
-
-This was done to mirror the behaviour of arrays at compile time as closely as possible.
+This was done to mirror the behaviour of arrays closely as possible, where out of bounds indexing
+errors are caught at compile time.
 
 ### Math Operations
 
@@ -290,17 +289,17 @@ Unlike structures in other crates, ```PointND```'s (as of ```v0.5.0```) do not i
 and consuming math operations like ```Neg```, ```Add```, ```SubAssign```, _etc_.
 
 It was decided that these functionalities and others could provided by independent crates via
-functions which could be imported and passed to the apply, extend and contract methods.
+functions which could be imported and passed to the `apply` methods.
 
-```Eq``` and ```PartialEq``` are implemented though.
+`Eq` and `PartialEq` are implemented though.
 
 ### Dimensional Capacity
 
-This crate relies heavily on the ```arrayvec``` crate when applying transformations to points. Due
-to the fact that ```arrayvec::ArrayVec```'s lengths are capped at ```u32::MAX```, the apply, extend
-and contract methods will panic if used on ```PointND```'s with dimensions exceeding that limit.
+This crate relies heavily on the `arrayvec` crate when applying transformations to points. Due
+to the fact that `arrayvec::ArrayVec`'s lengths are capped at `u32::MAX`, any `apply`, `extend`
+and `contract` methods will panic if used on `PointND`'s with dimensions exceeding that limit.
 
-This shouldn't be a problem in most use cases (who needs a ```u32::MAX + 1``` dimensional point
+This shouldn't be a problem in most use cases (who needs a `u32::MAX + 1` dimensional point
 anyway?), but it is probably worth mentioning.
  */
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -595,7 +594,6 @@ impl<T, const N: usize> PointND<T, N> {
 
         arrvec_into_inner!(arr_v, "extend")
     }
-
 
     ///
     /// Consumes ```self``` and returns a new ```PointND``` which retains only the first ```dims```
