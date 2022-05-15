@@ -14,22 +14,6 @@ use crate::utils::ARRVEC_CAP;
 use crate::utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
 
 
-// For use within methods that make use of ArrayVec
-// Checks if the dimensions of a point are greater than the max capacity of ArrayVec's
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
-macro_rules! check_transform_cap {
-    ( $dims:expr, $method:expr ) => {
-        if $dims > ARRVEC_CAP {
-            panic!(
-                "Attempted to call {}() on PointND with more than u32::MAX dimensions. \
-                Try reducing the dimensions of the point via the contract() method or before \
-                transforming",
-                $method
-            );
-        }
-    };
-}
-
 // For use ONLY within the apply, extend and contract methods as their constant
 //  generics ensure that the ArrayVec is always filled with initialised values
 // Converts ArrayVec<T,N> into [T;N] unsafely
@@ -322,45 +306,53 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
 
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained
-     by ```self``` to create a new ```PointND``` of the same length.
+    /// Test
+    #[cfg(any(feature = "appliers", feature = "var_dims"))]
+    fn _check_arrvec_cap(&self, cap: usize, method_name: &str) {
+        if cap > ARRVEC_CAP {
+            panic!("Attempted to call {}() on PointND with more than u32::MAX dimensions",  method_name);
+        }
+    }
 
-     ```
-     # use point_nd::PointND;
-     let p = PointND
-         ::from([0,1,2])             // Creates a new PointND
-         .apply(|item| item + 2)     // Adds 2 to each item
-         .apply(|item| item * 3);    // Multiplies each item by 3
-     assert_eq!(p.into_arr(), [6, 9, 12]);
-     ```
 
-     The return type of the ```modifier``` does not necessarily have to be
-     the same as the type of the items passed to it. This means that ```apply```
-     can create a new point with items of a different type, but the same length.
-
-     ```
-     # use point_nd::PointND;
-     let p = PointND
-         ::from([0,1,2])                // Creates a new PointND
-         .apply(|item| item as f32);    // Converts items to float
-     assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
-     ```
-
-     # Enabled by features:
-
-     - ```default```
-
-     - ```appliers```
-
-     # Panics
-
-     - If the dimensions of ```self``` are greater than ```u32::MAX```.
-     */
+    ///
+    /// Consumes ```self``` and calls the ```modifier``` on each item contained
+    /// by ```self``` to create a new ```PointND``` of the same length.
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// let p = PointND
+    ///     ::from([0,1,2])             // Creates a new PointND
+    ///     .apply(|item| item + 2)     // Adds 2 to each item
+    ///     .apply(|item| item * 3);    // Multiplies each item by 3
+    /// assert_eq!(p.into_arr(), [6, 9, 12]);
+    /// ```
+    ///
+    /// The return type of the ```modifier``` does not necessarily have to be
+    /// the same as the type of the items passed to it. This means that ```apply```
+    /// can create a new point with items of a different type, but the same length.
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// let p = PointND
+    ///     ::from([0,1,2])                // Creates a new PointND
+    ///     .apply(|item| item as f32);    // Converts items to float
+    /// assert_eq!(p.into_arr(), [0.0, 1.0, 2.0]);
+    /// ```
+    ///
+    /// # Enabled by features:
+    ///
+    /// - ```default```
+    ///
+    /// - ```appliers```
+    ///
+    /// # Panics
+    ///
+    /// - If the dimensions of ```self``` are greater than ```u32::MAX```.
+    ///
     #[cfg(feature = "appliers")]
     pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
-
-        check_transform_cap!(N, "apply");
+        self._check_arrvec_cap(N, "apply");
 
         let mut arr_v = ArrayVec::<U, N>::new();
         let mut this = ArrayVec::from(self.into_arr());
@@ -373,38 +365,37 @@ impl<T, const N: usize> PointND<T, N> {
         arrvec_into_inner!(arr_v, "apply")
     }
 
-    /**
-     Consumes ```self``` and calls the ```modifier``` on the items at the
-     specified ```dims``` to create a new ```PointND``` of the same length.
-
-     Any items at dimensions not specified will be passed to the new point without change
-
-     ```
-     # use point_nd::PointND;
-     let p = PointND
-         ::from([0,1,2,3,4])                       // Creates a PointND
-         .apply_dims(&[1,3], |item| item * 2)      // Multiplies items 1 and 3 by 2
-         .apply_dims(&[0,2], |item| item + 10);    // Adds 10 to items 0 and 2
-     assert_eq!(p.into_arr(), [10, 2, 12, 6, 4]);
-     ```
-
-     Unlike some other apply methods, this ```apply_dims``` cannot return
-     a ```PointND``` with items of a different type from the original.
-
-     # Enabled by features:
-
-     - ```default```
-
-     - ```appliers```
-
-     # Panics
-
-     - If the dimensions of ```self``` are greater than ```u32::MAX```.
-     */
+    ///
+    /// Consumes ```self``` and calls the ```modifier``` on the items at the
+    /// specified ```dims``` to create a new ```PointND``` of the same length.
+    ///
+    /// Any items at dimensions not specified will be passed to the new point without change
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// let p = PointND
+    ///     ::from([0,1,2,3,4])                       // Creates a PointND
+    ///     .apply_dims(&[1,3], |item| item * 2)      // Multiplies items 1 and 3 by 2
+    ///     .apply_dims(&[0,2], |item| item + 10);    // Adds 10 to items 0 and 2
+    /// assert_eq!(p.into_arr(), [10, 2, 12, 6, 4]);
+    /// ```
+    ///
+    /// Unlike some other apply methods, this ```apply_dims``` cannot return
+    /// a ```PointND``` with items of a different type from the original.
+    ///
+    /// # Enabled by features:
+    ///
+    /// - ```default```
+    ///
+    /// - ```appliers```
+    ///
+    /// # Panics
+    ///
+    /// - If the dimensions of ```self``` are greater than ```u32::MAX```.
+    ///
     #[cfg(feature = "appliers")]
     pub fn apply_dims(self, dims: &[usize], modifier: ApplyDimsFn<T>) -> Self {
-
-        check_transform_cap!(N, "apply_dims");
+        self._check_arrvec_cap(N, "apply_dims");
 
         let mut arr_v = ArrayVec::<T, N>::new();
         let mut this = ArrayVec::from(self.into_arr());
@@ -423,7 +414,7 @@ impl<T, const N: usize> PointND<T, N> {
 
     /**
      Consumes ```self``` and calls the ```modifier``` on each item contained by
-    ```self``` and ```values``` to create a new ```PointND``` of the same length.
+     ```self``` and ```values``` to create a new ```PointND``` of the same length.
 
      As this method may modify every value in the original point,
      the ```values``` array must be the same length as the point.
@@ -487,8 +478,7 @@ impl<T, const N: usize> PointND<T, N> {
         values: [V; N],
         modifier: ApplyValsFn<T, U, V>
     ) -> PointND<U, N> {
-
-        check_transform_cap!(N, "apply_vals");
+        self._check_arrvec_cap(N, "apply_vals");
 
         let mut arr_v = ArrayVec::<U, N>::new();
         let mut vals = ArrayVec::from(values);
@@ -503,48 +493,47 @@ impl<T, const N: usize> PointND<T, N> {
         arrvec_into_inner!(arr_v, "apply_vals")
     }
 
-    /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by
-     ```self``` and another ```PointND``` to create a new point of the same length.
-
-     When creating a modifier function to be used by this method, keep
-     in mind that the items in ```self``` are passed to it through the
-     **first arg**, and the items in ```other``` through the **second**.
-
-     ```
-     # use point_nd::PointND;
-     let p1 = PointND::from([0,9,3,1]);
-     let p2 = PointND::fill(10);
-     let p3 = PointND
-         ::from([1,2,3,4])                // Creates a new PointND
-         .apply_point(p1, |a, b| a - b)   // Subtracts items in p3 with those in p1
-         .apply_point(p2, |a, b| a * b);  // Multiplies items in p3 with those in p2
-     assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
-     ```
-
-     Neither the return type of the ```modifier``` nor the type of the items
-     contained by the ```other``` point necessarily have to be  the same as
-     the type of the items in the original point. This means that ```apply_point```
-     can create a new point with items of a different type, but the same length.
-
-     # Enabled by features:
-
-     - ```default```
-
-     - ```appliers```
-
-     # Panics
-
-     - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
-     */
+    ///
+    /// Consumes ```self``` and calls the ```modifier``` on each item contained by
+    /// ```self``` and another ```PointND``` to create a new point of the same length.
+    ///
+    /// When creating a modifier function to be used by this method, keep
+    /// in mind that the items in ```self``` are passed to it through the
+    /// **first arg**, and the items in ```other``` through the **second**.
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// let p1 = PointND::from([0,9,3,1]);
+    /// let p2 = PointND::fill(10);
+    /// let p3 = PointND
+    ///     ::from([1,2,3,4])                // Creates a new PointND
+    ///     .apply_point(p1, |a, b| a - b)   // Subtracts items in p3 with those in p1
+    ///     .apply_point(p2, |a, b| a * b);  // Multiplies items in p3 with those in p2
+    /// assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
+    /// ```
+    ///
+    /// Neither the return type of the ```modifier``` nor the type of the items
+    /// contained by the ```other``` point necessarily have to be  the same as
+    /// the type of the items in the original point. This means that ```apply_point```
+    /// can create a new point with items of a different type, but the same length.
+    ///
+    /// # Enabled by features:
+    ///
+    /// - ```default```
+    ///
+    /// - ```appliers```
+    ///
+    /// # Panics
+    ///
+    /// - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
+    ///
     #[cfg(feature = "appliers")]
     pub fn apply_point<U, V>(
         self,
         other: PointND<V, N>,
         modifier: ApplyPointFn<T, U, V>
     ) -> PointND<U, N> {
-
-        check_transform_cap!(N, "apply_point");
+        self._check_arrvec_cap(N, "apply_point");
 
         self.apply_vals(other.into_arr(), modifier)
     }
@@ -582,8 +571,10 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     #[cfg(feature = "var_dims")]
     pub fn extend<const L: usize, const M: usize>(self, values: [T; L]) -> PointND<T, M> {
-
-        check_transform_cap!(L + N, "extend");
+        self._check_arrvec_cap(N, "extend");
+        if N + L > ARRVEC_CAP {
+            panic!("Attempted to extend() a PointND to more than u32::MAX dimensions");
+        }
 
         let mut arr_v = ArrayVec::<T, M>::new();
         let mut this = ArrayVec::from(self.into_arr());
@@ -632,7 +623,7 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     #[cfg(feature = "var_dims")]
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
-
+        self._check_arrvec_cap(N, "contract");
         // This check allows us to safely unwrap the values in self
         if dims > N || M > N {
             panic!("Attempted to contract PointND to more dimensions than it had originally. Try \
