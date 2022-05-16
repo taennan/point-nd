@@ -38,8 +38,9 @@ let p = PointND::new([0, 1]);
 // As the point has 2 dimensions, we can access
 //  it's values with the x() and y() methods
 let x: &i32 = p.x();
-assert_eq!(*x, arr[0]);
 let y = p.y();
+
+assert_eq!(*x, arr[0]);
 assert_eq!(*y, arr[1]);
 
 // If the point had 3 dimensions, we could use the above and:

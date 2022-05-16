@@ -306,7 +306,9 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
 
-    /// Test
+    ///
+    /// Panics with customised error message if specified `cap` is greater than the max `ArrayVec` capacity (`u32::MAX`)
+    ///
     #[cfg(any(feature = "appliers", feature = "var_dims"))]
     fn _check_arrvec_cap(&self, cap: usize, method_name: &str) {
         if cap > ARRVEC_CAP {
@@ -587,8 +589,8 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     ///
-    /// Consumes ```self``` and returns a new ```PointND``` which retains only the first ```dims```
-    /// items of the original.
+    /// Consumes `self` and returns a new `PointND` which retains only the first `dims` items of the
+    /// original.
     ///
     /// This method always removes the rearmost items first.
     ///
@@ -603,11 +605,11 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// # Enabled by features:
     ///
-    /// - ```var_dims```
+    /// - `var_dims`
     ///
     /// # Panics
     ///
-    /// - If ```dims``` is greater than the original dimensions of the point (_a.k.a_ - you cannot
+    /// - If `dims` is greater than the original dimensions of the point (_a.k.a_ - you cannot
     ///   shorten the dimensions of a point to more than it had originally).
     ///
     /// ```should_panic
@@ -619,7 +621,7 @@ impl<T, const N: usize> PointND<T, N> {
     /// # let _p2 = PointND::from([0,1,2]).apply_point(p, |a, b| a + b);
     /// ```
     ///
-    /// - If the dimensions of ```self``` are greater than ```u32::MAX```.
+    /// - If the dimensions of `self` are greater than `u32::MAX`.
     ///
     #[cfg(feature = "var_dims")]
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {

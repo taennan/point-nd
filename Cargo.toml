@@ -16,6 +16,9 @@ categories = ["data-structures", "graphics", "no-std"]
 [dependencies]
 arrayvec = { version = "0.7.2", default-features = false, optional = true }
 
+[dev-dependencies]
+doc-comment = "0.3.3"
+
 [features]
 default = ["appliers", "conv_methods", "dim_macros"]
 full = ["default", "var_dims"]
