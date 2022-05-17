@@ -1,6 +1,6 @@
 [package]
 name = "point-nd"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 description = "A simple and flexible no-std struct to model points on axes of any dimensions"
 license = "MIT OR Apache-2.0"
