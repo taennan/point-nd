@@ -9,28 +9,11 @@ use core::ops::AddAssign;
 use arrayvec::ArrayVec;
 #[cfg(any(feature = "appliers", feature = "var_dims"))]
 use crate::utils::ARRVEC_CAP;
+#[cfg(any(feature = "appliers", feature = "var_dims"))]
+use crate::utils::arrvec_into_inner;
 
 #[cfg(feature = "appliers")]
 use crate::utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
-
-
-// For use ONLY within the apply, extend and contract methods as their constant
-//  generics ensure that the ArrayVec is always filled with initialised values
-// Converts ArrayVec<T,N> into [T;N] unsafely
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
-macro_rules! arrvec_into_inner {
-    ($arrvec:expr, $method:expr) => {
-        match $arrvec.into_inner() {
-            Ok(arr) => PointND::from(arr),
-            _ => panic!(
-                "Couldn't convert ArrayVec into array in {}() method. \
-                 This operation should never have panicked. Please contact \
-                 the maintainers of PointND if troubles persist",
-                 $method
-            )
-        }
-    };
-}
 
 
 // IMPORTANT!
@@ -367,7 +350,9 @@ impl<T, const N: usize> PointND<T, N> {
             arr_v.push(modifier(item));
         }
 
-        arrvec_into_inner!(arr_v, "apply")
+        PointND::from(
+            arrvec_into_inner(arr_v, "apply")
+        )
     }
 
     ///
@@ -414,7 +399,9 @@ impl<T, const N: usize> PointND<T, N> {
             }
         }
 
-        arrvec_into_inner!(arr_v, "apply_dims")
+        PointND::from(
+            arrvec_into_inner(arr_v, "apply_dims")
+        )
     }
 
     /**
@@ -495,7 +482,9 @@ impl<T, const N: usize> PointND<T, N> {
             arr_v.push(modifier(a, b));
         }
 
-        arrvec_into_inner!(arr_v, "apply_vals")
+        PointND::from(
+            arrvec_into_inner(arr_v, "apply_vals() or apply_point")
+        )
     }
 
     ///
@@ -588,7 +577,9 @@ impl<T, const N: usize> PointND<T, N> {
         for _ in 0..N { arr_v.push(this.pop_at(0).unwrap()); }
         for _ in 0..L { arr_v.push(vals.pop_at(0).unwrap());  }
 
-        arrvec_into_inner!(arr_v, "extend")
+        PointND::from(
+            arrvec_into_inner(arr_v, "extend")
+        )
     }
 
     ///
@@ -643,7 +634,9 @@ impl<T, const N: usize> PointND<T, N> {
             arr_v.push(item);
         }
 
-        arrvec_into_inner!(arr_v, "contract")
+        PointND::from(
+            arrvec_into_inner(arr_v, "contract")
+        )
     }
 
 }
