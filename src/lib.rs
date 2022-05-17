@@ -1,7 +1,7 @@
 #![no_std]
 
 //!
-//! A simple and flexible multidimensional coordinate point, based on an array.
+//! A simple and flexible no-std struct, based on an array, used to model points on axes of any dimensions.
 //!
 //! See the `PointND` struct for basic usage
 //!

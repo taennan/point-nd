@@ -1,7 +1,7 @@
 
 # PointND
 
-A simple and flexible no-std struct to model points on n-dimensional axes
+A simple and flexible `no-std` struct to model points on axes of **any** dimensions
 
 ## Compatibility
 
@@ -169,5 +169,3 @@ and/or [`Apache2.0`][apache-license] licenses.
 [apache-license]: https://github.com/taennan/point-nd/blob/main/LICENSE-APACHE
 
 [crate]: https://crates.io/crates/point-nd
-
-[axmac]: https://crates.io/crates/axmac

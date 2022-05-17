@@ -2,7 +2,7 @@
 name = "point-nd"
 version = "0.4.1"
 edition = "2021"
-description = "A simple and flexible no-std struct to model points on n-dimensional axes"
+description = "A simple and flexible no-std struct to model points on axes of any dimensions"
 license = "MIT OR Apache-2.0"
 authors = [
     "taennan taennan@zohomail.com"
