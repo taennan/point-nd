@@ -1,5 +1,5 @@
 #![cfg(feature = "dim_macros")]
-
+//
 /**
  Converts an identifier _x_, _y_, _z_ or _w_ to a ```usize``` value for indexing collections.
 
