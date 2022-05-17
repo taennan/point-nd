@@ -7,7 +7,7 @@
 //!
 //! # Compatibility
 //!
-//! This crate is designed to be `#![no_std]` and `wasm` compatible, and has been tested in those environments.
+//! This crate was designed to be `no_std` and `wasm` compatible, and has been tested in those environments.
 //!
 //! `PointND` uses constant generics, it is recommended for use with a Rust version of **at least 1.51**
 //!
@@ -29,12 +29,6 @@
 //!
 //!         - `w`: Convenience methods for `4D` points
 //!
-//! - `dim_macros`
-//!
-//!     - **Enabled by default**
-//!
-//!     - Macros which allow usize values to be generated from identifiers.
-//!
 //! - `appliers`
 //!
 //!     - **Enabled by default**
@@ -50,7 +44,6 @@
 //!     - If this and the `appliers` feature are disabled, this crate will include zero dependencies
 //!
 
-mod dimension_macros;
 mod point;
 mod utils;
 
@@ -58,13 +51,3 @@ pub use point::PointND;
 
 #[cfg(feature = "appliers")]
 pub use utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
-
-// For testing the README.md file
-// - Commented out because it throws import errors in the README
-/*
-#[cfg(doctest)]
-use doc_comment::doctest;
-
-#[cfg(doctest)]
-doctest!("../README.md");
- */

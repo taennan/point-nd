@@ -9,7 +9,7 @@ for use with a Rust version **>= 1.51**.
 
 ## Basic Usage
 
-As ```PointND``` dereferences to a slice, all methods 
+As `PointND` dereferences to a slice, all methods 
 implemented for slices are also available with this
 
 ### Making a Point
@@ -29,7 +29,7 @@ let p = PointND::<_, 4>::fill(5);
 
 ### Querying Values and Properties 
 
-If the dimensions of the point are within ```1..=4```, it is 
+If the dimensions of the point are within `1..=4`, it is 
 recommended to use the convenience getters for accessing values.
 
 ```rust
@@ -51,7 +51,8 @@ assert_eq!(*y, arr[1]);
 
 The above methods are not implemented for PointND's with more than 4 dimensions. 
 
-We must use indexing instead.
+We must use indexing instead. See the documentation for other crates which make 
+direct indexing easier
 
 ```rust
 let p = PointND::new([0,1,2,3,4,5]);
@@ -61,15 +62,9 @@ let p = PointND::new([0,1,2,3,4,5]);
 
 let x: i32 = p[0];
 let y = p[1];
-
-// The dimension macros provided by this crate can make
-//  direct indexing easier and more readable
-// See the documentation for more info
-let z = p[dim!(z)];
-let the_rest = p[dimr!(w..)];
 ```
 
-To get the dimensions of a point, use the ```dims()``` method.
+To get the dimensions of a point, use the `dims` method.
 
 ```rust
 let p = PointND::new([0, 1, 2, 3]);
@@ -80,7 +75,7 @@ assert_eq!(dims, 4);
 
 ### Transforming Values
 
-If the dimensions of the point are within ```1..=4```, it is 
+If the dimensions of the point are within `1..=4`, it is 
 recommended to use the convenience setters for setting values.
 
 ```rust
@@ -105,14 +100,12 @@ let p = PointND::new([0,1,2,3,4]);
 // p.set_x(1200);
 
 p[0] = 1200;
-// Or...
-p[dim!(x)] = 1200;
 ```
 
-Complex transformations can be made via functions passed to the ```apply```, 
-```apply_vals```, ```apply_dims``` and ```apply_point``` methods. 
+Complex transformations can be made via functions passed to the `apply`, 
+`apply_vals`, `apply_dims` and `apply_point` methods. 
 
-See the documentation for more info.
+See the [documentation][docs] for more info.
 
 ```rust
 let add_ten = |i: i32| i + 10;
@@ -125,15 +118,13 @@ let p2 = PointND::new([0,1,2,3,4,5])
          .apply(add_ten)
          // Doubles items at indexes 0, 1 and 2
          .apply_dims(&[0,1,2], double)
-         // Does the same thing, just more readable
-         .apply_dims(&dims![x,y,z], double)
          // Adds items in p2 to respective items in p1
          .apply_point(p1, sum);
 ```
 
 ### Iterating
 
-Iterating over a ```PointND``` is as easy as:
+Iterating over a `PointND` is as easy as:
 
 ```rust
 let mut p = PointND::new([0,1]);
@@ -147,8 +138,22 @@ for _ in p.into_iter() { /* Move stuff (unless items implement Copy) */ }
 
 Any suggestions for the codebase, documentation, README (or anything) are more than welcome!
 
-If there are any problems or queries, please submit an issue on our Github page.
+If there are any problems or queries, please submit an issue in our [GitHub repo][repo].
+
+## Changelog
+
+The full list of API changes can be found in our [GitHub repo][changelog].
 
 ## License
 
-This crate uses the MIT license.
+This crate is available under the [`MIT`][mit-license] 
+and/or [`Apache2.0`][apache-license] licenses.
+
+[docs]: https://docs.rs/point-nd/0.5.0/point_nd/
+
+[repo]: https://github.com/taennan/point-nd/tree/main
+[changelog]: https://github.com/taennan/point-nd/blob/main/CHANGELOG.md
+[mit-license]: https://github.com/taennan/point-nd/blob/main/LICENSE-MIT
+[apache-license]: https://github.com/taennan/point-nd/blob/main/LICENSE-APACHE
+
+[axmac]: https://crates.io/crates/axmac

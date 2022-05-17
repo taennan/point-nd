@@ -37,7 +37,6 @@ macro_rules! arrvec_into_inner {
 // - These docs have been written with the assumption that default features have been enabled
 // - Running doctests without default features will result in test failures
 /**
-
 The whole _point_ of the crate.
 
 The ```PointND``` struct is really just a smart pointer to an array of type ```[T; N]```
@@ -100,8 +99,8 @@ let p = PointND::from([0,1]);
 // As the point has 2 dimensions, we can access
 //  it's values with the x() and y() methods
 let x: &i32 = p.x();
-assert_eq!(*x, 0);
 let y = p.y();
+assert_eq!(*x, 0);
 assert_eq!(*y, 1);
 
 // If the point had 3 dimensions, we could use the above and:
@@ -112,11 +111,11 @@ assert_eq!(*y, 1);
 
 The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
 
-Instead, we must use the native implementations of the contained array.
+Instead, we must use the native implementations of the contained array. See the [notes][notes-indexing]
+below on how direct indexing can be made easier.
 
 ```
 # use point_nd::PointND;
-# use point_nd::{dim, dimr};
 let p = PointND::from([0,1,2,3,4,5]);
 
 // ERROR: Not implemented for PointND of 6 dimensions
@@ -129,15 +128,6 @@ let z_to_last = &p[2..];
 assert_eq!(x, 0);
 assert_eq!(*y.unwrap(), 1);
 assert_eq!(z_to_last, &[2, 3, 4, 5]);
-
-// The dimension macros provided by this crate can make
-//  direct indexing easier and more readable
-// See their documentation for more info
-let z = p[dim!(z)];
-let w_to_last = &p[dimr!(w..)];
-
-assert_eq!(z, 2);
-assert_eq!(w_to_last, &[3, 4, 5]);
 ```
 
 To get **all** the values contained by a point, use the `into_arr()` method
@@ -154,7 +144,7 @@ The number of dimensions can be retrieved using the `dims()` method (short for _
 
 ```
 # use point_nd::PointND;
-let p: PointND<i32, 2> = PointND::from([0,1]);
+let p = PointND::from([0,1]);
 assert_eq!(p.dims(), 2);
 
 // Alternatively, as PointND implements Deref, we can use len().
@@ -192,19 +182,16 @@ assert_eq!(*p.y(), 5);
 
 The above methods are not implemented for `PointND`'s with more than 4 dimensions.
 
-Instead, we must use the native implementations of the contained array
+Instead, we must use the native implementations of the contained array. See the [notes][notes-indexing]
+below on how direct indexing can be made easier.
 
 ```
 # use point_nd::PointND;
-# use point_nd::dim;
 let mut p = PointND::from([0, 1, 2, 3, 4, 5]);
 
 // Sets x via indexing
 p[0] = -100;
-# assert_eq!(p[0], -100);
-// Sets y via indexing and dimension macros
-p[dim!(y)] = -100;
-# assert_eq!(p[0], p[1]);
+assert_eq!(p[0], -100);
 ```
 
 ### Appliers
@@ -227,11 +214,12 @@ let p = PointND
 assert_eq!(p.into_arr(), [6, 9, 12]);
 ```
 
-Each applier has it's own subtle differences, it is recommended to read the documentation for each of them
+Each applier has it's own subtle differences, it is recommended to read the documentation for
+each of them
 
 # Iterating
 
-Iterating over a ```PointND``` is as easy as:
+Iterating over a `PointND` is as easy as:
 
 ```
 # use point_nd::PointND;
@@ -242,10 +230,10 @@ for _ in p.iter_mut()  { /* Change stuff */ }
 for _ in p.into_iter() { /* Move stuff (unless items implement Copy) */ }
 ```
 
-It must be noted that if the items implement ```Copy```, using ```into_iter()``` will not actually
+It must be noted that if the items implement `Copy`, using `into_iter()` will not actually
 move the point out of scope.
 
-If this behaviour is necessary, use the ```into_arr()``` method to consume the point and move the
+If this behaviour is necessary, use the `into_arr()` method to consume the point and move the
 contained array into the loop
 
 ```
@@ -267,10 +255,18 @@ are only implemented for points within **1..=4** dimensions.
 This was done to mirror the behaviour of arrays closely as possible, where out of bounds indexing
 errors are caught at compile time.
 
+### Direct Indexing
+
+Indexing values can become cumbersome if using `usize` values. As of `v0.5.0`, `point-nd`'s indexing
+macros have been moved to the [`axmac`][axmac] crate which provides macros to index the first
+4 dimensions of a point by simply specifying _x_, _y_, _z_ or _w_.
+
+The `axmac` crate is **highly recommended** when working with points above 4 dimensions
+
 ### Math Operations
 
-Unlike structures in other crates, ```PointND```'s (as of ```v0.5.0```) do not implement mutating
-and consuming math operations like ```Neg```, ```Add```, ```SubAssign```, _etc_.
+Unlike structures in other crates, `PointND`'s (as of `v0.5.0`) do not implement mutating
+and consuming math operations like `Neg`, `Add`, `SubAssign`, _etc_.
 
 It was decided that these functionalities and others could provided by independent crates via
 functions which could be imported and passed to the `apply` methods.
@@ -279,12 +275,19 @@ functions which could be imported and passed to the `apply` methods.
 
 ### Dimensional Capacity
 
-This crate relies heavily on the `arrayvec` crate when applying transformations to points. Due
-to the fact that `arrayvec::ArrayVec`'s lengths are capped at `u32::MAX`, any `apply`, `extend`
-and `contract` methods will panic if used on `PointND`'s with dimensions exceeding that limit.
+This crate relies heavily on the [`arrayvec`][arrayvec] crate when applying
+transformations to points. Due to the fact that `arrayvec::ArrayVec`'s lengths are capped at
+`u32::MAX`, any `apply`, `extend` and `contract` methods will panic if used on `PointND`'s with
+dimensions exceeding that limit.
 
 This shouldn't be a problem in most use cases (who needs a `u32::MAX + 1` dimensional point
 anyway?), but it is probably worth mentioning.
+
+ [axmac]: https://crates.io/crates/axmac
+ [arrayvec]: https://crates.io/crates/arrayvec
+
+ [notes]: https://docs.rs/point-nd/0.5.0/point_nd/struct.PointND.html#things-not-strictly-necessary-to-note
+ [notes-indexing]: https://docs.rs/point-nd/0.5.0/point_nd/struct.PointND.html#direct-indexing
  */
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PointND<T, const N: usize>([T; N]);
