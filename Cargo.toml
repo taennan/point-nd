@@ -18,7 +18,7 @@ arrayvec = { version = "0.7.2", default-features = false, optional = true }
 
 [features]
 default = ["conv_methods", "appliers"]
-full = ["default", "var_dims"]
+full = ["default", "var-dims"]
 
 # Enables methods that Get, Set and Shift x, y, z and w values of PointND's from 1..=4 dimensions
 x = []
@@ -30,4 +30,4 @@ conv_methods = ["x", "y", "z", "w"]
 # Enables apply, apply_dims, apply_vals and apply_point methods
 appliers = ["arrayvec"]
 # Enables extend and contract methods
-var_dims = ["arrayvec"]
+var-dims = ["arrayvec"]

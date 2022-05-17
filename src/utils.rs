@@ -1,5 +1,5 @@
 
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
+#[cfg(any(feature = "appliers", feature = "var-dims"))]
 use arrayvec::ArrayVec;
 
 ///
@@ -8,7 +8,7 @@ use arrayvec::ArrayVec;
 /// For use ONLY within the apply, extend and contract methods as their constant
 /// generics ensure that ArrayVec's are always filled with initialised values
 ///
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
+#[cfg(any(feature = "appliers", feature = "var-dims"))]
 pub(crate) fn arrvec_into_inner<T, const N: usize>(arrvec: ArrayVec<T, N>, method_name: &str) -> [T; N] {
     match arrvec.into_inner() {
         Ok(arr) => arr,
@@ -21,7 +21,7 @@ pub(crate) fn arrvec_into_inner<T, const N: usize>(arrvec: ArrayVec<T, N>, metho
     }
 }
 
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
+#[cfg(any(feature = "appliers", feature = "var-dims"))]
 pub const ARRVEC_CAP: usize = u32::MAX as usize;
 
 /// Function pointer type to pass to  `apply()` in `PointND`'s

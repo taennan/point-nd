@@ -35,9 +35,9 @@
 //!
 //!     - Methods which allow function pointers to be passed to points in order to transform values.
 //!
-//!     - If this and the `var_dims` feature are disabled, this crate will include zero dependencies
+//!     - If this and the `var-dims` feature are disabled, this crate will include zero dependencies
 //!
-//! - `var_dims`
+//! - `var-dims`
 //!
 //!     - Methods which append or remove values from points.
 //!

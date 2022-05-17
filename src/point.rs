@@ -5,38 +5,39 @@ use core::ops::{Deref, DerefMut};
 #[cfg(any(feature = "x", feature = "y", feature = "z", feature = "w"))]
 use core::ops::AddAssign;
 
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
+#[cfg(any(feature = "appliers", feature = "var-dims"))]
 use arrayvec::ArrayVec;
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
+#[cfg(any(feature = "appliers", feature = "var-dims"))]
 use crate::utils::ARRVEC_CAP;
-#[cfg(any(feature = "appliers", feature = "var_dims"))]
+#[cfg(any(feature = "appliers", feature = "var-dims"))]
 use crate::utils::arrvec_into_inner;
 
 #[cfg(feature = "appliers")]
 use crate::utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
 
 
-// Note to Developers!
-// - These docs have been written with the assumption that default features have been enabled
+// Note to Developers:
+// - The docs have been written with the assumption that default features have been enabled
 // - Running doctests without default features will result in test failures
 // - Sorry about the mixed doc comment styles... we are slowly refactoring the /** block comments **/
 //   to /// triple slashes and the ```triple_code_blocks``` to `singles`
 
+
 /**
 The whole _point_ of the crate.
 
-The ```PointND``` struct is really just a smart pointer to an array of type ```[T; N]```
+The `PointND` struct is really just a smart pointer to an array of type `[T; N]`
 with convenience methods for accessing, setting and transforming values.
 
 As the struct dereferences to a slice, all methods implemented for slices are available with this.
 
 # Making a Point
 
-There are three ```PointND``` constructors (in order of usefulness): ```from()```, ```fill()```
-and ```from_slice()```.
+There are three `PointND` constructors (in order of usefulness): `from()`, `fill()`
+and `from_slice()`.
 
-The ```from_slice()``` and ```fill()``` functions can only be used if creating a point where the
-items implement ```Copy```
+The `from_slice()` and `fill()` functions can only be used if creating a point where the
+items implement `Copy`
 
 ```
 # use point_nd::PointND;
@@ -60,7 +61,7 @@ and ```from_slice()``` functions, specifying it is sometimes needed when the com
 
 See their documentation for cases when explicit generics are not necessary
 
-Otherwise, if you don't like writing ```PointND``` twice for type annotation, it is recommended to
+Otherwise, if you don't like writing `PointND` twice for type annotation, it is recommended to
 use FQS (_fully qualified syntax_) instead:
 
 ```
@@ -95,7 +96,7 @@ assert_eq!(*y, 1);
 //  let w = p.w();
 ```
 
-The above methods are not implemented for ```PointND```'s with more than 4 dimensions.
+The above methods are not implemented for `PointND`'s with more than 4 dimensions.
 
 Instead, we must use the native implementations of the contained array. See the [notes][notes-indexing]
 below on how direct indexing can be made easier.
@@ -185,7 +186,7 @@ assert_eq!(p[0], -100);
 The ```apply()```, ```apply_vals()```, ```apply_dims()``` and ```apply_point()``` methods all
 consume self and return a new point after calling a function or closure on all contained values
 
-Multiple applier methods can be chained together to make complex transformations to a ```PointND```
+Multiple applier methods can be chained together to make complex transformations to a `PointND`
 
 This is probably best explained with an example:
 
@@ -289,7 +290,7 @@ impl<T, const N: usize> PointND<T, N> {
         self.0.len()
     }
 
-    /// Consumes ```self```, returning the contained array
+    /// Consumes `self`, returning the contained array
     pub fn into_arr(self) -> [T; N] {
         self.0
     }
@@ -298,7 +299,7 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// Panics with customised error message if specified `cap` is greater than the max `ArrayVec` capacity (`u32::MAX`)
     ///
-    #[cfg(any(feature = "appliers", feature = "var_dims"))]
+    #[cfg(any(feature = "appliers", feature = "var-dims"))]
     fn _check_arrvec_cap(&self, cap: usize, method_name: &str) {
         if cap > ARRVEC_CAP {
             panic!("Attempted to call {}() on PointND with more than u32::MAX dimensions",  method_name);
@@ -307,8 +308,8 @@ impl<T, const N: usize> PointND<T, N> {
 
 
     ///
-    /// Consumes ```self``` and calls the ```modifier``` on each item contained
-    /// by ```self``` to create a new ```PointND``` of the same length.
+    /// Consumes `self` and calls the `modifier` on each item contained
+    /// by `self` to create a new `PointND` of the same length.
     ///
     /// ```
     /// # use point_nd::PointND;
@@ -319,7 +320,7 @@ impl<T, const N: usize> PointND<T, N> {
     /// assert_eq!(p.into_arr(), [6, 9, 12]);
     /// ```
     ///
-    /// The return type of the ```modifier``` does not necessarily have to be
+    /// The return type of the `modifier` does not necessarily have to be
     /// the same as the type of the items passed to it. This means that ```apply```
     /// can create a new point with items of a different type, but the same length.
     ///
@@ -333,13 +334,13 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// # Enabled by features:
     ///
-    /// - ```default```
+    /// - `default`
     ///
-    /// - ```appliers```
+    /// - `appliers`
     ///
     /// # Panics
     ///
-    /// - If the dimensions of ```self``` are greater than ```u32::MAX```.
+    /// - If the dimensions of `self` are greater than `u32::MAX`.
     ///
     #[cfg(feature = "appliers")]
     pub fn apply<U>(self, modifier: ApplyFn<T, U>) -> PointND<U, N> {
@@ -359,8 +360,8 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     ///
-    /// Consumes ```self``` and calls the ```modifier``` on the items at the
-    /// specified ```dims``` to create a new ```PointND``` of the same length.
+    /// Consumes `self` and calls the `modifier` on the items at the
+    /// specified `dims` to create a new `PointND` of the same length.
     ///
     /// Any items at dimensions not specified will be passed to the new point without change
     ///
@@ -374,17 +375,17 @@ impl<T, const N: usize> PointND<T, N> {
     /// ```
     ///
     /// Unlike some other apply methods, this ```apply_dims``` cannot return
-    /// a ```PointND``` with items of a different type from the original.
+    /// a `PointND` with items of a different type from the original.
     ///
     /// # Enabled by features:
     ///
-    /// - ```default```
+    /// - `default`
     ///
-    /// - ```appliers```
+    /// - `appliers`
     ///
     /// # Panics
     ///
-    /// - If the dimensions of ```self``` are greater than ```u32::MAX```.
+    /// - If the dimensions of `self` are greater than `u32::MAX`.
     ///
     #[cfg(feature = "appliers")]
     pub fn apply_dims(self, dims: &[usize], modifier: ApplyDimsFn<T>) -> Self {
@@ -408,14 +409,14 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     /**
-     Consumes ```self``` and calls the ```modifier``` on each item contained by
-     ```self``` and ```values``` to create a new ```PointND``` of the same length.
+     Consumes `self` and calls the `modifier` on each item contained by
+     `self` and ```values``` to create a new `PointND` of the same length.
 
      As this method may modify every value in the original point,
      the ```values``` array must be the same length as the point.
 
      When creating a modifier function to be used by this method, keep
-     in mind that the items in ```self``` are passed to it through the
+     in mind that the items in `self` are passed to it through the
      **first arg**, and the items in ```values``` through the **second**.
 
      ```
@@ -427,7 +428,7 @@ impl<T, const N: usize> PointND<T, N> {
      assert_eq!(p.into_arr(), [2, 16, 42]);
      ```
 
-     Neither the return type of the ```modifier``` nor the type of the items contained
+     Neither the return type of the `modifier` nor the type of the items contained
      by the ```values``` array necessarily have to be the same as the item type of the
      original point. This means that ```apply_vals``` can create a new point with items
      of a different type, but the same length.
@@ -459,13 +460,13 @@ impl<T, const N: usize> PointND<T, N> {
 
      # Enabled by features:
 
-     - ```default```
+     - `default`
 
-     - ```appliers```
+     - `appliers`
 
      # Panics
 
-     - If the dimensions of ```self``` or ```values``` are greater than ```u32::MAX```.
+     - If the dimensions of `self` or ```values``` are greater than `u32::MAX`.
      */
     #[cfg(feature = "appliers")]
     pub fn apply_vals<U, V>(
@@ -491,12 +492,12 @@ impl<T, const N: usize> PointND<T, N> {
     }
 
     ///
-    /// Consumes ```self``` and calls the ```modifier``` on each item contained by
-    /// ```self``` and another ```PointND``` to create a new point of the same length.
+    /// Consumes `self` and calls the `modifier` on each item contained by
+    /// `self` and another `PointND` to create a new point of the same length.
     ///
     /// When creating a modifier function to be used by this method, keep
-    /// in mind that the items in ```self``` are passed to it through the
-    /// **first arg**, and the items in ```other``` through the **second**.
+    /// in mind that the items in `self` are passed to it through the
+    /// **first arg**, and the items in `other` through the **second**.
     ///
     /// ```
     /// # use point_nd::PointND;
@@ -509,20 +510,20 @@ impl<T, const N: usize> PointND<T, N> {
     /// assert_eq!(p3.into_arr(), [10, -70, 0, 30]);
     /// ```
     ///
-    /// Neither the return type of the ```modifier``` nor the type of the items
-    /// contained by the ```other``` point necessarily have to be  the same as
+    /// Neither the return type of the `modifier` nor the type of the items
+    /// contained by the `other` point necessarily have to be  the same as
     /// the type of the items in the original point. This means that ```apply_point```
     /// can create a new point with items of a different type, but the same length.
     ///
     /// # Enabled by features:
     ///
-    /// - ```default```
+    /// - `default`
     ///
-    /// - ```appliers```
+    /// - `appliers`
     ///
     /// # Panics
     ///
-    /// - If the dimensions of ```self``` or ```other``` are greater than ```u32::MAX```.
+    /// - If the dimensions of `self` or `other` are greater than `u32::MAX`.
     ///
     #[cfg(feature = "appliers")]
     pub fn apply_point<U, V>(
@@ -535,8 +536,9 @@ impl<T, const N: usize> PointND<T, N> {
         self.apply_vals(other.into_arr(), modifier)
     }
 
+    
     ///
-    /// Consumes ```self``` and returns a new ```PointND``` with items from ```values``` appended to
+    /// Consumes `self` and returns a new `PointND` with items from `values` appended to
     /// items from the original.
     ///
     /// ```
@@ -549,11 +551,11 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// # Enabled by features:
     ///
-    /// - ```var_dims```
+    /// - `var-dims`
     ///
     /// # Panics
     ///
-    /// - If the combined length of ```self``` and ```values``` are greater than ```u32::MAX```.
+    /// - If the combined length of `self` and `values` are greater than `u32::MAX`.
     ///
     /// ```should_panic
     /// # use point_nd::PointND;
@@ -566,7 +568,7 @@ impl<T, const N: usize> PointND<T, N> {
     ///     .extend([1; L]);
     /// ```
     ///
-    #[cfg(feature = "var_dims")]
+    #[cfg(feature = "var-dims")]
     pub fn extend<const L: usize, const M: usize>(self, values: [T; L]) -> PointND<T, M> {
         self._check_arrvec_cap(N, "extend");
         if N + L > ARRVEC_CAP {
@@ -602,7 +604,7 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// # Enabled by features:
     ///
-    /// - `var_dims`
+    /// - `var-dims`
     ///
     /// # Panics
     ///
@@ -620,7 +622,7 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// - If the dimensions of `self` are greater than `u32::MAX`.
     ///
-    #[cfg(feature = "var_dims")]
+    #[cfg(feature = "var-dims")]
     pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
         self._check_arrvec_cap(N, "contract");
         // This check allows us to safely unwrap the values in self
@@ -649,7 +651,7 @@ impl<T, const N: usize> PointND<T, N>
     where T: Copy {
 
     /**
-     Returns a new ```PointND``` with values from the specified slice
+     Returns a new `PointND` with values from the specified slice
 
      If the compiler is not able to infer the dimensions (a.k.a - length)
      of the point, it needs to be explicitly specified
@@ -687,7 +689,7 @@ impl<T, const N: usize> PointND<T, N>
     }
 
     ///
-    /// Returns a new ```PointND``` with all values set as specified
+    /// Returns a new `PointND` with all values set as specified
     ///
     /// If the compiler is not able to infer the dimensions (a.k.a - length)
     /// of the point, it needs to be explicitly specified
@@ -731,15 +733,15 @@ impl<T, const N: usize> DerefMut for PointND<T, N> {
 
 // Convenience Getters and Setters
 ///
-/// Methods for safely getting and setting the value contained by a 1D ```PointND```
+/// Methods for safely getting and setting the value contained by a 1D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```x```
+/// - `x`
 ///
 #[cfg(feature = "x")]
 impl<T> PointND<T, 1> {
@@ -750,15 +752,15 @@ impl<T> PointND<T, 1> {
 
 }
 ///
-/// Methods for safely getting and setting the values contained by a 2D ```PointND```
+/// Methods for safely getting and setting the values contained by a 2D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```y```
+/// - `y`
 ///
 #[cfg(feature = "y")]
 impl<T> PointND<T, 2> {
@@ -771,15 +773,15 @@ impl<T> PointND<T, 2> {
 
 }
 ///
-/// Methods for safely getting and setting the values contained by a 3D ```PointND```
+/// Methods for safely getting and setting the values contained by a 3D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```z```
+/// - `z`
 ///
 #[cfg(feature = "z")]
 impl<T> PointND<T, 3>  {
@@ -794,15 +796,15 @@ impl<T> PointND<T, 3>  {
 
 }
 ///
-/// Methods for safely getting and setting the values contained by a 4D ```PointND```
+/// Methods for safely getting and setting the values contained by a 4D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```w```
+/// - `w`
 ///
 #[cfg(feature = "w")]
 impl<T> PointND<T, 4>  {
@@ -821,15 +823,15 @@ impl<T> PointND<T, 4>  {
 
 // Convenience Shifters
 ///
-/// Method for safely transforming the value contained by a 1D ```PointND```
+/// Method for safely transforming the value contained by a 1D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```x```
+/// - `x`
 /// 
 #[cfg(feature = "x")]
 impl<T> PointND<T, 1>
@@ -839,15 +841,15 @@ impl<T> PointND<T, 1>
 
 }
 ///
-/// Methods for safely transforming the values contained by a 2D ```PointND```
+/// Methods for safely transforming the values contained by a 2D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```y```
+/// - `y`
 ///
 #[cfg(feature = "y")]
 impl<T> PointND<T, 2>
@@ -858,15 +860,15 @@ impl<T> PointND<T, 2>
 
 }
 ///
-/// Methods for safely transforming the values contained by a 3D ```PointND```
+/// Methods for safely transforming the values contained by a 3D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```z```
+/// - `z`
 ///
 #[cfg(feature = "z")]
 impl<T> PointND<T, 3>
@@ -878,15 +880,15 @@ impl<T> PointND<T, 3>
 
 }
 ///
-/// Methods for safely transforming the values contained by a 4D ```PointND```
+/// Methods for safely transforming the values contained by a 4D `PointND`
 ///
 /// # Enabled by features:
 ///
-/// - ```default```
+/// - `default`
 ///
-/// - ```conv_methods```
+/// - `conv_methods`
 ///
-/// - ```w```
+/// - `w`
 ///
 #[cfg(feature = "w")]
 impl<T> PointND<T, 4>
@@ -1091,7 +1093,7 @@ mod tests {
     }
 
     #[cfg(test)]
-    #[cfg(feature = "var_dims")]
+    #[cfg(feature = "var-dims")]
     mod extenders {
         use super::*;
 
@@ -1132,7 +1134,7 @@ mod tests {
     }
 
     #[cfg(test)]
-    #[cfg(feature = "var_dims")]
+    #[cfg(feature = "var-dims")]
     mod contractors {
         use super::*;
 
