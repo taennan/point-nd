@@ -2,10 +2,10 @@
 name = "point-nd"
 version = "0.4.1"
 edition = "2021"
-description = "A simple and flexible no-std struct for modelling points on an axis"
+description = "A simple and flexible no-std struct to model points on n-dimensional axes"
 license = "MIT OR Apache-2.0"
 authors = [
-    "Taennan taennan@zohomail.com"
+    "taennan taennan@zohomail.com"
 ]
 repository = "https://github.com/taennan/point-nd/tree/main"
 exclude = [".idea", ".gitignore", "CHANGELOG.md"]
@@ -17,7 +17,7 @@ categories = ["data-structures", "graphics", "no-std"]
 arrayvec = { version = "0.7.2", default-features = false, optional = true }
 
 [features]
-default = ["appliers", "conv_methods"]
+default = ["conv_methods", "appliers"]
 full = ["default", "var_dims"]
 
 # Enables methods that Get, Set and Shift x, y, z and w values of PointND's from 1..=4 dimensions

@@ -1,16 +1,20 @@
 
 # PointND
 
-A simple and flexible data structure for modelling points of 
-**any** dimensions on an axis **without** the standard library.
+A simple and flexible no-std struct to model points on n-dimensional axes
 
-This crate uses constant generics, it is recommended 
-for use with a Rust version **>= 1.51**.
+## Compatibility
+
+This crate was designed to be `no_std` and `wasm` compatible, and has been 
+tested in those environments.
+
+This crate uses constant generics, it is recommended for use with a Rust version 
+of **at least 1.51**.
 
 ## Basic Usage
 
 As `PointND` dereferences to a slice, all methods 
-implemented for slices are also available with this
+implemented for slices are available with this
 
 ### Making a Point
 
@@ -51,7 +55,7 @@ assert_eq!(*y, arr[1]);
 
 The above methods are not implemented for PointND's with more than 4 dimensions. 
 
-We must use indexing instead. See the documentation for other crates which make 
+We must use indexing instead. See the [documentation][docs] for other crates which make 
 direct indexing easier
 
 ```rust
@@ -61,7 +65,7 @@ let p = PointND::new([0,1,2,3,4,5]);
 // let x = p.x();
 
 let x: i32 = p[0];
-let y = p[1];
+let y_to_z = p[1..3];
 ```
 
 To get the dimensions of a point, use the `dims` method.
@@ -140,14 +144,22 @@ Any suggestions for the codebase, documentation, README (or anything) are more t
 
 If there are any problems or queries, please submit an issue in our [GitHub repo][repo].
 
-## Changelog
+## API Changes
 
-The full list of API changes can be found in our [GitHub repo][changelog].
+Breaking API changes are still a possibility in the future. However, as of `v0.5.0` this
+has become far less likely and future major releases (if any) will most likely add 
+functionality instead of revamping existing ones.
+
+The [full changelog][changelog] can be found in our GitHub repo.
+
+Our [GitHub repo][repo] is always a few steps ahead of the version available on [crates.io][crate],
+so it may be worth checking for sweet new features and bugfixes.
 
 ## License
 
 This crate is available under the [`MIT`][mit-license] 
 and/or [`Apache2.0`][apache-license] licenses.
+
 
 [docs]: https://docs.rs/point-nd/0.5.0/point_nd/
 
@@ -155,5 +167,7 @@ and/or [`Apache2.0`][apache-license] licenses.
 [changelog]: https://github.com/taennan/point-nd/blob/main/CHANGELOG.md
 [mit-license]: https://github.com/taennan/point-nd/blob/main/LICENSE-MIT
 [apache-license]: https://github.com/taennan/point-nd/blob/main/LICENSE-APACHE
+
+[crate]: https://crates.io/crates/point-nd
 
 [axmac]: https://crates.io/crates/axmac

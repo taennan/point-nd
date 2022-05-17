@@ -16,9 +16,12 @@ use crate::utils::arrvec_into_inner;
 use crate::utils::{ApplyFn, ApplyDimsFn, ApplyValsFn, ApplyPointFn};
 
 
-// IMPORTANT!
+// Note to Developers!
 // - These docs have been written with the assumption that default features have been enabled
 // - Running doctests without default features will result in test failures
+// - Sorry about the mixed doc comment styles... we are slowly refactoring the /** block comments **/
+//   to /// triple slashes and the ```triple_code_blocks``` to `singles`
+
 /**
 The whole _point_ of the crate.
 
