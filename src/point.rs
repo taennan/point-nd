@@ -264,7 +264,7 @@ functions which could be imported and passed to the `apply` methods.
 
 This crate relies heavily on the [`arrayvec`][arrayvec] crate when applying
 transformations to points. Due to the fact that `arrayvec::ArrayVec`'s lengths are capped at
-`u32::MAX`, any `apply`, `extend` and `contract` methods will panic if used on `PointND`'s with
+`u32::MAX`, any `apply`, `extend` and `retain` methods will panic if used on `PointND`'s with
 dimensions exceeding that limit.
 
 This shouldn't be a problem in most use cases (who needs a `u32::MAX + 1` dimensional point
@@ -278,6 +278,71 @@ anyway?), but it is probably worth mentioning.
  */
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PointND<T, const N: usize>([T; N]);
+
+// From and Fill
+impl<T, const N: usize> PointND<T, N>
+    where T: Copy {
+
+    /**
+     Returns a new `PointND` with values from the specified slice
+
+     If the compiler is not able to infer the dimensions (a.k.a - length)
+     of the point, it needs to be explicitly specified
+
+     ```
+     # use point_nd::PointND;
+     // Explicitly specifying dimensions
+     let p = PointND::<_, 3>::from_slice(&vec![0,1,2]);
+
+     // The generics don't always have to be specified though, for example
+     let p1 = PointND::from([0,1]);       // Compiler knows this has 2 dimensions
+     let p2 = PointND::from_slice(&vec![2,3]);
+
+     // Later, p2 is applied to p1. The compiler is able to infer its dimensions
+     let p3 = p1.apply_point(p2, |a, b| a + b);
+     ```
+
+     If the length of the slice being passed is uncertain, it is recommended to use the `try_from()`
+     method for more graceful error handling.
+
+     # Panics
+
+     - If the slice passed cannot be converted into an array
+
+    ```should_panic
+    # use point_nd::PointND;
+    let arr = [0,1,2];
+    // ERROR: Cannot convert slice of [i32; 3] to [i32; 100]
+    let p = PointND::<_, 100>::from_slice(&arr[..]);
+    ```
+     */
+    pub fn from_slice(slice: &[T]) -> Self {
+        let arr: [T; N] = slice.try_into().unwrap();
+        PointND::from(arr)
+    }
+
+    ///
+    /// Returns a new `PointND` with all values set as specified
+    ///
+    /// If the compiler is not able to infer the dimensions (a.k.a - length)
+    /// of the point, it needs to be explicitly specified
+    ///
+    /// See the ```from_slice()``` function for cases when generics don't need to be explicitly specified
+    ///
+    /// ```
+    /// # use point_nd::PointND;
+    /// // A 10 dimensional point with all values set to 2
+    /// let p = PointND::<_, 10>::fill(2);
+    ///
+    /// assert_eq!(p.dims(), 10);
+    /// assert_eq!(p.into_arr(), [2; 10]);
+    /// ```
+    ///
+    pub fn fill(value: T) -> Self {
+        PointND::from([value; N])
+    }
+
+}
 
 impl<T, const N: usize> PointND<T, N> {
 
@@ -487,6 +552,7 @@ impl<T, const N: usize> PointND<T, N> {
         }
 
         PointND::from(
+            // Had to put two method names here as this function is called from apply_point()
             arrvec_into_inner(arr_v, "apply_vals() or apply_point")
         )
     }
@@ -540,7 +606,7 @@ impl<T, const N: usize> PointND<T, N> {
     ///
     /// Consumes `self` and returns a new `PointND` with items from `values` appended to
     /// items from the original.
-    ///
+    /// 
     /// ```
     /// # use point_nd::PointND;
     /// let p = PointND
@@ -548,6 +614,11 @@ impl<T, const N: usize> PointND<T, N> {
     ///     .extend([2,3]);
     ///  assert_eq!(p.into_arr(), [0,1,2,3]);
     /// ```
+    ///
+    /// # **Warning!**
+    ///
+    /// Although we believe it has been tested against the most common use cases, no guarantees are
+    /// made as to the stability of this method.
     ///
     /// # Enabled by features:
     ///
@@ -597,10 +668,15 @@ impl<T, const N: usize> PointND<T, N> {
     /// # use point_nd::PointND;
     /// let p = PointND
     ///     ::from([0,1,2,3])
-    ///     .contract(2);
+    ///     .retain(2);
     /// assert_eq!(p.dims(), 2);
     /// assert_eq!(p.into_arr(), [0,1]);
     /// ```
+    ///
+    /// # **Warning!**
+    ///
+    /// Although we believe it has been tested against the most common use cases, no guarantees are
+    /// made as to the stability of this method.
     ///
     /// # Enabled by features:
     ///
@@ -615,7 +691,7 @@ impl<T, const N: usize> PointND<T, N> {
     /// # use point_nd::PointND;
     /// let p = PointND
     ///     ::from([0,1,2])
-    ///     .contract(1_000_000);
+    ///     .retain(1_000_000);
     /// # // Just to silence the type error
     /// # let _p2 = PointND::from([0,1,2]).apply_point(p, |a, b| a + b);
     /// ```
@@ -623,8 +699,8 @@ impl<T, const N: usize> PointND<T, N> {
     /// - If the dimensions of `self` are greater than `u32::MAX`.
     ///
     #[cfg(feature = "var-dims")]
-    pub fn contract<const M: usize>(self, dims: usize) -> PointND<T, M> {
-        self._check_arrvec_cap(N, "contract");
+    pub fn retain<const M: usize>(self, dims: usize) -> PointND<T, M> {
+        self._check_arrvec_cap(N, "retain");
         // This check allows us to safely unwrap the values in self
         if dims > N || M > N {
             panic!("Attempted to contract PointND to more dimensions than it had originally. Try \
@@ -640,73 +716,8 @@ impl<T, const N: usize> PointND<T, N> {
         }
 
         PointND::from(
-            arrvec_into_inner(arr_v, "contract")
+            arrvec_into_inner(arr_v, "retain")
         )
-    }
-
-}
-
-// From and Fill
-impl<T, const N: usize> PointND<T, N>
-    where T: Copy {
-
-    /**
-     Returns a new `PointND` with values from the specified slice
-
-     If the compiler is not able to infer the dimensions (a.k.a - length)
-     of the point, it needs to be explicitly specified
-
-     ```
-     # use point_nd::PointND;
-     // Explicitly specifying dimensions
-     let p = PointND::<_, 3>::from_slice(&vec![0,1,2]);
-
-     // The generics don't always have to be specified though, for example
-     let p1 = PointND::from([0,1]);       // Compiler knows this has 2 dimensions
-     let p2 = PointND::from_slice(&vec![2,3]);
-
-     // Later, p2 is applied to p1. The compiler is able to infer its dimensions
-     let p3 = p1.apply_point(p2, |a, b| a + b);
-     ```
-
-     If the length of the slice being passed is uncertain, it is recommended to use the `try_from()`
-     method for more graceful error handling.
-
-     # Panics
-
-     - If the slice passed cannot be converted into an array
-
-    ```should_panic
-    # use point_nd::PointND;
-    let arr = [0,1,2];
-    // ERROR: Cannot convert slice of [i32; 3] to [i32; 100]
-    let p = PointND::<_, 100>::from_slice(&arr[..]);
-    ```
-     */
-    pub fn from_slice(slice: &[T]) -> Self {
-        let arr: [T; N] = slice.try_into().unwrap();
-        PointND::from(arr)
-    }
-
-    ///
-    /// Returns a new `PointND` with all values set as specified
-    ///
-    /// If the compiler is not able to infer the dimensions (a.k.a - length)
-    /// of the point, it needs to be explicitly specified
-    ///
-    /// See the ```from_slice()``` function for cases when generics don't need to be explicitly specified
-    ///
-    /// ```
-    /// # use point_nd::PointND;
-    /// // A 10 dimensional point with all values set to 2
-    /// let p = PointND::<_, 10>::fill(2);
-    ///
-    /// assert_eq!(p.dims(), 10);
-    /// assert_eq!(p.into_arr(), [2; 10]);
-    /// ```
-    ///
-    pub fn fill(value: T) -> Self {
-        PointND::from([value; N])
     }
 
 }
@@ -1135,34 +1146,34 @@ mod tests {
 
     #[cfg(test)]
     #[cfg(feature = "var-dims")]
-    mod contractors {
+    mod retain {
         use super::*;
 
         #[test]
-        fn can_contract_to() {
+        fn can_retain_n() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract(3);
+                .retain(3);
 
             assert_eq!(p.dims(), 3);
             assert_eq!(p.into_arr(), [0,1,2]);
         }
 
         #[test]
-        fn can_contract_to_zero() {
+        fn can_retain_zero() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract(0);
+                .retain(0);
 
             assert_eq!(p.dims(), 0);
             assert_eq!(p.into_arr(), []);
         }
 
         #[test]
-        fn can_contract_to_same() {
+        fn can_retain_same() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract(4);
+                .retain(4);
 
             assert_eq!(p.dims(), 4);
             assert_eq!(p.into_arr(), [0,1,2,3]);
@@ -1171,10 +1182,10 @@ mod tests {
         #[test]
         #[should_panic]
         #[allow(unused_variables)]
-        fn cannot_contract_to_more_dimensions() {
+        fn cannot_retain_more_dimensions() {
             let p = PointND
                 ::from([0,1,2,3])
-                .contract::<1000>(1000);
+                .retain::<1000>(1000);
         }
 
     }

@@ -29,5 +29,5 @@ conv_methods = ["x", "y", "z", "w"]
 
 # Enables apply, apply_dims, apply_vals and apply_point methods
 appliers = ["arrayvec"]
-# Enables extend and contract methods
+# Enables extend and retain methods
 var-dims = ["arrayvec"]
