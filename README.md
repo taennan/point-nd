@@ -158,7 +158,7 @@ so it may be worth checking for sweet new features and bugfixes.
 ## License
 
 This crate is available under the [`MIT`][mit-license] 
-and/or [`Apache2.0`][apache-license] licenses.
+or [`Apache2.0`][apache-license] licenses.
 
 
 [docs]: https://docs.rs/point-nd/0.5.0/point_nd/
